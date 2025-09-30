@@ -1,45 +1,7 @@
 'use client';
 import { create } from 'zustand';
-
-export type Coord = { r: number; c: number };
-export enum CellKind {
-    empty = 'empty',
-    wall = 'wall',
-}
-
-type GridState = {
-    rows: number;
-    cols: number;
-    cellSize: number;
-    cells: CellKind[];
-    start: Coord;
-    goal: Coord;
-
-    idx(r: number, c: number): number;
-    inBounds(r: number, c: number): boolean;
-
-    setDimensions(rows: number, cols: number): void;
-    setCellSize(px: number): void;
-
-    setCell(r: number, c: number, kind: CellKind): void;
-    toggleWall(r: number, c: number): void;
-    clearWalls(): void;
-    randomWalls(p: number): void;
-
-    setStart(r: number, c: number): void;
-    setGoal(r: number, c: number): void;
-
-    reset(): void;
-};
-
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-function initGrid(rows = 25, cols = 45, cellSize = 22) {
-    const cells: CellKind[] = Array(rows * cols).fill(CellKind.empty);
-    const start = { r: Math.floor(rows / 2), c: Math.floor(cols / 6) };
-    const goal = { r: Math.floor(rows / 2), c: Math.floor((cols * 5) / 6) };
-    return { rows, cols, cellSize, cells, start, goal };
-}
+import { CellKind, GridState } from '../types';
+import { clamp, initGrid, nearestEmptyCell } from '../utils';
 
 export const useGridStore = create<GridState>((set, get) => {
     const g = initGrid();
@@ -50,12 +12,16 @@ export const useGridStore = create<GridState>((set, get) => {
         idx: (r, c) => r * get().cols + c,
         inBounds: (r, c) => r >= 0 && c >= 0 && r < get().rows && c < get().cols,
 
+        at: (r, c) => {
+            const s = get();
+            return s.cells[s.idx(r, c)];
+        },
+
         setDimensions: (R, C) =>
             set((s: GridState) => {
                 const rows = clamp(R, 2, 300);
                 const cols = clamp(C, 2, 300);
 
-                // simple: reset walls on resize (you can preserve later)
                 const cells: CellKind[] = Array(rows * cols).fill(CellKind.empty);
 
                 const start = {
@@ -67,7 +33,6 @@ export const useGridStore = create<GridState>((set, get) => {
                     c: clamp(s.goal.c, 0, cols - 1),
                 };
 
-                // avoid overlap after clamping
                 if (start.r === goal.r && start.c === goal.c) {
                     const altC = clamp(goal.c + 1, 0, cols - 1);
                     goal = { r: goal.r, c: altC === start.c ? clamp(goal.c - 1, 0, cols - 1) : altC };
@@ -122,19 +87,18 @@ export const useGridStore = create<GridState>((set, get) => {
             set((s: GridState) => {
                 r = clamp(r, 0, s.rows - 1);
                 c = clamp(c, 0, s.cols - 1);
-                if (r === s.goal.r && c === s.goal.c) return {};
-                // optional: forbid start on a wall
-                // if (s.cells[s.idx(r,c)] === 'wall') return {};
-                return { start: { r, c } };
+                const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
+                if (snapped.r === s.goal.r && snapped.c === s.goal.c) return {};
+                return { start: snapped };
             }),
 
         setGoal: (r, c) =>
             set((s: GridState) => {
                 r = clamp(r, 0, s.rows - 1);
                 c = clamp(c, 0, s.cols - 1);
-                if (r === s.start.r && c === s.start.c) return {};
-                // if (s.cells[s.idx(r,c)] === 'wall') return {};
-                return { goal: { r, c } };
+                const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
+                if (snapped.r === s.start.r && snapped.c === s.start.c) return {};
+                return { goal: snapped };
             }),
 
         reset: () => set(initGrid()),
