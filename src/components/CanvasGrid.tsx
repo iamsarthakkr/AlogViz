@@ -4,68 +4,10 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useGridStore } from '@/features/grid/store/useGridStore';
 import { CellKind } from '@/features/grid/types';
-
-// ---------- drawing helpers ----------
-const drawCell = (ctx: CanvasRenderingContext2D, r: number, c: number, s: number, kind: 'empty' | 'wall') => {
-    ctx.fillStyle = kind === 'wall' ? '#3c3f46' : '#ffffff';
-    ctx.fillRect(c * s, r * s, s, s);
-};
-
-const drawGridLines = (ctx: CanvasRenderingContext2D, rows: number, cols: number, s: number) => {
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1;
-
-    for (let r = 0; r <= rows; r++) {
-        const y = r * s + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(cols * s, y);
-        ctx.stroke();
-    }
-    for (let c = 0; c <= cols; c++) {
-        const x = c * s + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, rows * s);
-        ctx.stroke();
-    }
-};
-
-const drawMarkers = (
-    ctx: CanvasRenderingContext2D,
-    s: number,
-    start: { r: number; c: number },
-    goal: { r: number; c: number },
-) => {
-    const dot = (p: { r: number; c: number }, color: string) => {
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(p.c * s + s / 2, p.r * s + s / 2, Math.max(4, s * 0.35), 0, Math.PI * 2);
-        ctx.fill();
-    };
-    dot(start, '#10b981');
-    dot(goal, '#ef4444');
-};
-
-const drawAll = (
-    ctx: CanvasRenderingContext2D,
-    rows: number,
-    cols: number,
-    s: number,
-    cells: CellKind[],
-    start: { r: number; c: number },
-    goal: { r: number; c: number },
-) => {
-    ctx.clearRect(0, 0, cols * s, rows * s);
-
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            drawCell(ctx, r, c, s, cells[r * cols + c]);
-        }
-    }
-    drawGridLines(ctx, rows, cols, s);
-    drawMarkers(ctx, s, start, goal);
-};
+import { drawAll, drawCell } from './painter';
+import { getGridShapshot } from '@/features/grid/algo/getGridSnapshot';
+import { bfs } from '@/features/grid/algo/bfs';
+import { log } from 'console';
 
 // ---------- component ----------
 enum DragMode {
@@ -157,7 +99,7 @@ export default function CanvasGrid() {
                 paintAt(r, c);
             }
         },
-        [hitCell],
+        [hitCell, paintAt],
     );
 
     const onPointerMove = useCallback(
@@ -168,7 +110,7 @@ export default function CanvasGrid() {
             else if (dragMode.current === DragMode.MoveStart) useGridStore.getState().setStart(r, c);
             else if (dragMode.current === DragMode.MoveGoal) useGridStore.getState().setGoal(r, c);
         },
-        [hitCell],
+        [hitCell, paintAt],
     );
 
     const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -180,15 +122,47 @@ export default function CanvasGrid() {
         dragMode.current = DragMode.None;
     }, []);
 
+    const runBfsDemo = useCallback(() => {
+        const snap = getGridShapshot();
+        const gen = bfs(snap);
+
+        const ctx = canvasRef.current!.getContext('2d')!;
+
+        const cellSize = snap.cellSize;
+        const perFrame = 10;
+        const step = () => {
+            for (let i = 0; i < perFrame; i++) {
+                const res = gen.next();
+                if (res.done) {
+                    console.log('done', res.value);
+                    return;
+                }
+                const event = res.value;
+                if (event.type === 'enqueue') {
+                    drawCell(ctx, event.at.r, event.at.c, cellSize, 'visiting');
+                } else if (event.type === 'visit') {
+                    drawCell(ctx, event.at.r, event.at.c, cellSize, 'visited');
+                } else {
+                    console.log({ event });
+                }
+            }
+            requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }, []);
+
     return (
-        <canvas
-            ref={canvasRef}
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerLeave={onPointerUp}
-            style={{ border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', display: 'block' }}
-        />
+        <>
+            <canvas
+                ref={canvasRef}
+                onContextMenu={(e) => e.preventDefault()}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerLeave={onPointerUp}
+                style={{ border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', display: 'block' }}
+            />
+            <button onClick={runBfsDemo}>Run BFS</button>
+        </>
     );
 }
