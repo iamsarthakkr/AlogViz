@@ -1,12 +1,11 @@
 'use client';
 
-import CanvasGrid from '@/components/CanvasGrid';
+import CanvasGrid from '@/features/grid/ui/CanvasGrid';
 import React from 'react';
 
 export default function GridPage() {
     return (
-        <div>
-            Grid Lab (canvas goes here)
+        <div className="flex justify-center items-center p-2">
             <CanvasGrid />
         </div>
     );
