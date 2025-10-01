@@ -12,7 +12,7 @@ const neighbors4 = (p: Coord): Coord[] => {
     return out;
 };
 
-export const bfs: PathFinder = function*(grid) {
+export const bfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;
@@ -62,11 +62,7 @@ export const bfs: PathFinder = function*(grid) {
         }
 
         path.reverse();
-
-        if (path.length) {
-            yield { type: 'path', nodes: path };
-        }
     }
 
-    return { path, visited };
+    yield { type: 'path', nodes: path, visited };
 };
