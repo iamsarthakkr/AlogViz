@@ -9,6 +9,25 @@ import { createRunner, RunnerApi } from '@/features/grid/animations/runner';
 import { paintAlgoEvent, clearOverlay, animateFinalPath } from '@/features/grid/ui/overlayPainter';
 import { getGridShapshot } from '../algo/getGridSnapshot';
 import { drawMarkers } from '../ui/basePainter';
+import { Callback, Callback1 } from '@/types';
+
+export type AlgoController = {
+    currentAlgo: string;
+    setAlgorithm: Callback1<string>;
+
+    status: string;
+    speed: number;
+    pathLen: number | null;
+    visitedApprox: number;
+
+    play: Callback;
+    pause: Callback;
+    step: Callback;
+    skipToEnd: Callback;
+    setSpeed: Callback1<number>;
+
+    recreate: Callback;
+};
 
 export type AlgoRegistry = Record<string, PathFinder>;
 
@@ -21,11 +40,11 @@ type Options = {
 
 type CachedRunner = { runner: RunnerApi<AlgoEvent>; buildVersion: number };
 
-export function useAlgoRunner(
+export function useAlgoController(
     gridRef: React.RefObject<CanvasGridHandle | null>,
     registry: AlgoRegistry,
     opts: Options = {},
-) {
+): AlgoController {
     const algoKeys = Object.keys(registry);
     const defaultKey = opts.initialAlgo && registry[opts.initialAlgo] ? opts.initialAlgo : algoKeys[0];
 
@@ -39,7 +58,7 @@ export function useAlgoRunner(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<() => void>(() => {});
+    const cancelPathAnimRef = useRef<() => void>(() => { });
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -180,24 +199,20 @@ export function useAlgoRunner(
     useEffect(() => cleanup, []);
 
     return {
-        algorithms: algoKeys, // list for your dropdown
         currentAlgo: algoKey,
-        setAlgorithm, // call to switch
+        setAlgorithm,
 
-        // status & telemetry
         status,
         speed,
         pathLen,
         visitedApprox,
 
-        // controls
         play,
         pause,
         step,
         skipToEnd,
         setSpeed: setEps,
 
-        // utilities
-        recreate: () => createRunnerFor(currentKeyRef.current!), // rebuild current
+        recreate: () => createRunnerFor(currentKeyRef.current),
     };
 }

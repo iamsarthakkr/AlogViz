@@ -1,4 +1,4 @@
-import { CellKind, Coord, Grid } from './types';
+import { CellKind, Coord, Grid, SpeedPreset } from './types';
 
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -7,6 +7,12 @@ export const initGrid = (rows = 25, cols = 45, cellSize = 22): Grid => {
     const start = { r: Math.floor(rows / 2), c: Math.floor(cols / 6) };
     const goal = { r: Math.floor(rows / 2), c: Math.floor((cols * 5) / 6) };
     return { gridVersion: 0, rows, cols, cellSize, cells, start, goal };
+};
+
+export const speedToEPS: Record<SpeedPreset, number> = {
+    slow: 80,
+    medium: 220,
+    fast: 600,
 };
 
 // tiny bfs around a cell to find nearest empty cell

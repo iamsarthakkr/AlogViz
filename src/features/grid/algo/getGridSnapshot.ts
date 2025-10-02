@@ -4,6 +4,7 @@ import { GridSnapShot } from './types';
 export const getGridShapshot = (): GridSnapShot => {
     const state = useGridStore.getState();
     return {
+        gridVersion: state.gridVersion,
         rows: state.rows,
         cols: state.cols,
         cells: state.cells.slice(),

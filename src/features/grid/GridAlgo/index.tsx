@@ -1,25 +1,16 @@
 'use client';
 
-import React, { useCallback, useRef } from 'react';
+import React, { useRef } from 'react';
 import CanvasGrid, { CanvasGridHandle } from '../ui/CanvasGrid';
-import { useAlgoRunner } from '../animations/useAlgoRunner';
-import { bfs } from '../algo/bfs';
-
-const registry = { bfs };
+import Toolbar from '../ui/Toolbar';
 
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
-    const runner = useAlgoRunner(gridRef, registry);
-
-    const onRun = useCallback(() => {
-        runner.setAlgorithm('bfs');
-        runner.play();
-    }, [runner]);
 
     return (
-        <div className="flex justify-center items-center p-2">
+        <div className="w-full flex flex-col justify-center items-center p-2">
+            <Toolbar ctx={gridRef} className="mb-5" />
             <CanvasGrid ref={gridRef} />
-            <button onClick={onRun}>Run BFS</button>
         </div>
     );
 }
