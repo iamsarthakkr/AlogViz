@@ -1,124 +1,92 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRunner } from '@/features/grid/animations/runner'; // event-only version
-import { paintAlgoEvent, clearOverlay } from '@/features/grid/ui/overlayPainter';
-import { useGridStore } from '@/features/grid/store/useGridStore';
+import type { AlgoEvent, PathFinder } from '@/features/grid/algo/types';
 import type { CanvasGridHandle } from '@/features/grid/ui/CanvasGrid';
-import { Coord } from '../types';
-import { AlgoEvent, PathFinder } from '../algo/types';
+import { useGridStore } from '@/features/grid/store/useGridStore';
+
+import { createRunner, RunnerApi } from '@/features/grid/animations/runner';
+import { paintAlgoEvent, clearOverlay, animateFinalPath } from '@/features/grid/ui/overlayPainter';
 import { getGridShapshot } from '../algo/getGridSnapshot';
-import { useShallow } from 'zustand/shallow';
+import { drawMarkers } from '../ui/basePainter';
 
-/** Optional: rAF path trace (animate final path nodes) */
-function animatePath(
-    ctx: CanvasRenderingContext2D,
-    nodes: Coord[],
-    cellSize: number,
-    nps = 240, // nodes per second
+export type AlgoRegistry = Record<string, PathFinder>;
+
+type Options = {
+    initialAlgo?: string; // default: first key of registry
+    initialSpeed?: number; // EPS
+    animatePath?: boolean; // default true (if false, path is drawn instantly)
+    pathNps?: number; // nodes/sec for path trace if animating
+};
+
+type CachedRunner = { runner: RunnerApi<AlgoEvent>; buildVersion: number };
+
+export function useAlgoRunner(
+    gridRef: React.RefObject<CanvasGridHandle | null>,
+    registry: AlgoRegistry,
+    opts: Options = {},
 ) {
-    if (!nodes.length) return () => {};
-    let i = 0;
-    let raf = 0;
-    const perFrame = Math.max(1, Math.ceil(nps / 60));
-    const center = (p: Coord) => [p.c * cellSize + cellSize / 2, p.r * cellSize + cellSize / 2] as const;
+    const algoKeys = Object.keys(registry);
+    const defaultKey = opts.initialAlgo && registry[opts.initialAlgo] ? opts.initialAlgo : algoKeys[0];
 
-    const step = () => {
-        for (let k = 0; k < perFrame && i < nodes.length - 1; k++, i++) {
-            const [x1, y1] = center(nodes[i]);
-            const [x2, y2] = center(nodes[i + 1]);
-            ctx.strokeStyle = '#22c55e'; // comes from palette in painter if you prefer
-            ctx.lineWidth = Math.max(2, cellSize * 0.25);
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-        }
-        if (i < nodes.length - 1) raf = requestAnimationFrame(step);
-    };
-
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-}
-
-/**
- * Bridges a CanvasGrid (overlay ctx) and a pathfinder.
- * Uses overlayPainter to render events; base layer is managed by CanvasGrid itself.
- */
-export function useAlgoRunner(gridRef: React.RefObject<CanvasGridHandle | null>) {
     // UI state
-    const [status, setStatus] = useState<'idle' | 'running' | 'paused' | 'done'>('idle');
-    const [speed, setSpeed] = useState(180); // events/sec
+    const [algoKey, setAlgoKey] = useState<string>(defaultKey);
+    const [status, setStatus] = useState<'idle' | 'ready' | 'running' | 'paused' | 'done'>('idle');
+    const [speed, setSpeed] = useState<number>(opts.initialSpeed ?? 180);
     const [pathLen, setPathLen] = useState<number | null>(null);
-    const [visitedApprox, setVisitedApprox] = useState(0); // count visits from events
+    const [visitedApprox, setVisitedApprox] = useState<number>(0);
 
-    // runner + anim refs
-    const runnerRef = useRef<ReturnType<typeof createRunner<AlgoEvent>> | null>(null);
+    const gridVersion = useGridStore((s) => s.gridVersion);
+
+    const runners = useRef(new Map<string, CachedRunner>());
     const cancelPathAnimRef = useRef<() => void>(() => {});
     const sawPathEventRef = useRef(false);
+    const currentKeyRef = useRef<string>(defaultKey);
+    const speedRef = useRef(speed);
 
-    // sizing for painters
-    const [rows, cols, cellSize] = useGridStore(useShallow((s) => [s.rows, s.cols, s.cellSize] as const));
+    const createRunnerFor = useCallback(
+        (key: string) => {
+            const ctx = gridRef.current?.getOverlayCtx() ?? null;
+            const algo = registry[key];
+            if (!ctx || !algo) return null;
 
-    // get overlay ctx from CanvasGrid
-    const getOverlayCtx = useCallback(() => gridRef.current?.getOverlayCtx() ?? null, [gridRef]);
-
-    /** Start a run with the given pathfinder */
-    const init = useCallback(
-        (
-            algo: PathFinder,
-            opts?: { speed?: number; drawPathInstant?: boolean; animatePath?: boolean; pathNps?: number },
-        ) => {
-            const ctx = getOverlayCtx();
-            if (!ctx) return;
-
-            // stop any active run/animation
-            runnerRef.current?.pause();
+            // stop any previous path animation for safety
             cancelPathAnimRef.current?.();
-            runnerRef.current = null;
-            sawPathEventRef.current = false;
-            setVisitedApprox(0);
-            setPathLen(null);
-
-            // optional speed override
-            if (opts?.speed) setSpeed(opts.speed);
-
-            // clear overlay fresh
-            clearOverlay(ctx, rows, cols, cellSize);
 
             const snap = getGridShapshot();
+            const { rows, cols, cellSize } = snap;
+
+            // fresh overlay for new run
+            clearOverlay(ctx, rows, cols, cellSize);
             const gen = algo(snap);
 
-            const drawInstant = opts?.drawPathInstant ?? false;
-            const doAnimate = opts?.animatePath ?? !drawInstant;
+            setVisitedApprox(0);
+            setPathLen(null);
+            sawPathEventRef.current = false;
 
-            // per-event painting
+            const drawInstant = opts.animatePath === false;
+            const doAnimate = !drawInstant;
             const onEvent = (e: AlgoEvent) => {
-                // paint enqueue/visit, and path (instant if requested)
-                paintAlgoEvent(ctx, cellSize, e, { start: snap.start, goal: snap.goal, drawPathInstant: drawInstant });
-
+                paintAlgoEvent(ctx, cellSize, e, { start: snap.start, goal: snap.goal });
                 if (e.type === 'visit') setVisitedApprox((v) => v + 1);
-
                 if (e.type === 'path') {
                     sawPathEventRef.current = true;
                     setStatus('done');
                     setPathLen(e.nodes.length);
 
-                    // animate the final path if desired (instead of instant draw)
                     if (doAnimate && e.nodes.length) {
                         cancelPathAnimRef.current?.();
-                        cancelPathAnimRef.current = animatePath(ctx, e.nodes, cellSize, opts?.pathNps ?? 240);
+                        cancelPathAnimRef.current = animateFinalPath(ctx, e.nodes, cellSize, opts.pathNps ?? 240, () =>
+                            drawMarkers(ctx, snap.start, snap.goal, snap.cellSize),
+                        );
                     }
                 }
             };
 
             const r = createRunner(gen, onEvent, {
-                speed: opts?.speed ?? speed,
+                speed: speedRef.current,
                 autoplay: false,
                 onFinish: () => {
-                    // if algo finished without a path event → no path case
                     if (!sawPathEventRef.current) {
                         setStatus('done');
                         setPathLen(0);
@@ -126,53 +94,97 @@ export function useAlgoRunner(gridRef: React.RefObject<CanvasGridHandle | null>)
                 },
             });
 
-            runnerRef.current = r;
-            setStatus('running');
+            runners.current.set(key, { runner: r, buildVersion: snap.gridVersion });
+            currentKeyRef.current = key;
+            setStatus('ready');
+            return r;
         },
-        [cellSize, getOverlayCtx, rows, cols, speed],
+        [gridRef, opts, registry],
     );
 
-    // controls
+    const getOrCreateCurrent = useCallback(() => {
+        const key = currentKeyRef.current ?? algoKey;
+
+        const cached = runners.current.get(key);
+        if (!cached || cached.buildVersion !== gridVersion) {
+            return createRunnerFor(key);
+        }
+        return cached.runner;
+    }, [algoKey, createRunnerFor, gridVersion]);
+
+    /** Public API to switch algorithm */
+    const setAlgorithm = useCallback(
+        (key: string) => {
+            if (!registry[key]) return;
+            const currentKey = currentKeyRef.current ?? '';
+            runners.current.get(currentKey)?.runner.pause();
+            setAlgoKey(key);
+            currentKeyRef.current = key;
+            setStatus('ready');
+        },
+        [registry],
+    );
+
+    // Controls operate on current runner
     const play = useCallback(() => {
-        runnerRef.current?.play();
+        const runner = getOrCreateCurrent();
+        if (!runner) return;
+        runner.play();
         setStatus('running');
-    }, []);
+    }, [getOrCreateCurrent]);
+
     const pause = useCallback(() => {
-        runnerRef.current?.pause();
+        const runner = getOrCreateCurrent();
+        if (!runner) return;
+        runner.pause();
         setStatus('paused');
-    }, []);
+    }, [getOrCreateCurrent]);
+
     const step = useCallback(() => {
-        const res = runnerRef.current?.step();
-        if (!res) return;
+        const runner = getOrCreateCurrent();
+        if (!runner) return;
+        const res = runner.step();
         if (res.done) {
             if (!sawPathEventRef.current) setPathLen(0);
             setStatus('done');
         } else {
             setStatus('paused');
         }
-    }, []);
+    }, [getOrCreateCurrent]);
+
     const skipToEnd = useCallback(() => {
-        runnerRef.current?.skipToEnd();
+        const runner = getOrCreateCurrent();
+        if (!runner) return;
+        runner.skipToEnd();
         if (!sawPathEventRef.current) setPathLen(0);
         setStatus('done');
-    }, []);
-    const changeSpeed = useCallback((eps: number) => {
-        setSpeed(eps);
-        runnerRef.current?.setSpeed(eps);
-    }, []);
+    }, [getOrCreateCurrent]);
 
-    // cleanup
-    useEffect(() => {
-        return () => {
-            runnerRef.current?.pause();
-            cancelPathAnimRef.current?.();
-        };
-    }, []);
+    const setEps = useCallback(
+        (eps: number) => {
+            speedRef.current = Math.max(1, eps);
+            setSpeed(speedRef.current);
+            const runner = getOrCreateCurrent();
+            runner?.setSpeed(eps);
+        },
+        [getOrCreateCurrent],
+    );
+
+    // Cleanup on unmount
+    const cleanup = () => {
+        for (const r of runners.current.values()) r.runner.pause();
+        cancelPathAnimRef.current?.();
+        runners.current.clear();
+        currentKeyRef.current = '';
+    };
+    useEffect(() => cleanup, []);
 
     return {
-        init,
+        algorithms: algoKeys, // list for your dropdown
+        currentAlgo: algoKey,
+        setAlgorithm, // call to switch
 
-        // state
+        // status & telemetry
         status,
         speed,
         pathLen,
@@ -183,9 +195,9 @@ export function useAlgoRunner(gridRef: React.RefObject<CanvasGridHandle | null>)
         pause,
         step,
         skipToEnd,
-        setSpeed: changeSpeed,
+        setSpeed: setEps,
 
-        // convenience
-        isRunning: runnerRef.current?.isRunning() ?? false,
+        // utilities
+        recreate: () => createRunnerFor(currentKeyRef.current!), // rebuild current
     };
 }

@@ -5,6 +5,7 @@ export enum CellKind {
 }
 
 export type Grid = {
+    gridVersion: number;
     rows: number;
     cols: number;
     cellSize: number;

@@ -1,6 +1,48 @@
 import type { Coord } from '@/features/grid/types';
 import { lightPalette as palette } from './colors';
 
+function center(p: Coord, s: number) {
+    return [p.c * s + s / 2, p.r * s + s / 2] as const;
+}
+
+export function drawStartMarker(ctx: CanvasRenderingContext2D, p: Coord, s: number) {
+    const size = Math.max(6, s * 0.5); // scale with cell size
+
+    const [cx, cy] = center(p, s);
+    ctx.strokeStyle = '#1e3a8a'; // dark blue
+    ctx.lineWidth = Math.max(2, s * 0.15);
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    // upper line
+    ctx.moveTo(cx - size * 0.4, cy - size * 0.4);
+    ctx.lineTo(cx + size * 0.4, cy);
+    // lower line
+    ctx.lineTo(cx - size * 0.4, cy + size * 0.4);
+    ctx.stroke();
+}
+
+export function drawGoalMarker(ctx: CanvasRenderingContext2D, p: Coord, s: number) {
+    const [cx, cy] = center(p, s);
+    const radius = Math.max(5, s * 0.35);
+
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = Math.max(2, radius * 0.25);
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+export function drawMarkers(ctx: CanvasRenderingContext2D, start: Coord, goal: Coord, s: number) {
+    drawStartMarker(ctx, start, s);
+    drawGoalMarker(ctx, goal, s);
+}
+
 export function drawBaseScene(
     ctx: CanvasRenderingContext2D,
     rows: number,
@@ -44,13 +86,5 @@ export function drawBaseScene(
     ctx.strokeRect(0.5, 0.5, cols * cellSize - 1, rows * cellSize - 1);
 
     // markers
-    drawMarker(ctx, start, cellSize, palette.start);
-    drawMarker(ctx, goal, cellSize, palette.goal);
-}
-
-function drawMarker(ctx: CanvasRenderingContext2D, p: Coord, s: number, color: string) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(p.c * s + s / 2, p.r * s + s / 2, Math.max(4, s * 0.35), 0, Math.PI * 2);
-    ctx.fill();
+    drawMarkers(ctx, start, goal, cellSize);
 }

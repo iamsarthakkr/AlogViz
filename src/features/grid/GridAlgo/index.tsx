@@ -5,12 +5,14 @@ import CanvasGrid, { CanvasGridHandle } from '../ui/CanvasGrid';
 import { useAlgoRunner } from '../animations/useAlgoRunner';
 import { bfs } from '../algo/bfs';
 
+const registry = { bfs };
+
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
-    const runner = useAlgoRunner(gridRef);
+    const runner = useAlgoRunner(gridRef, registry);
 
     const onRun = useCallback(() => {
-        runner.init(bfs, { speed: 220, animatePath: true });
+        runner.setAlgorithm('bfs');
         runner.play();
     }, [runner]);
 

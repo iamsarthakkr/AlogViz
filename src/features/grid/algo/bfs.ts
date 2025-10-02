@@ -30,14 +30,14 @@ export const bfs: PathFinder = function* (grid) {
     yield { type: 'enqueue', at: start };
 
     let visited = 0;
+    let found = false;
     while (queue.size()) {
+        if (found) break;
         const node = queue.pop()!;
         const cid = id(node);
         visited += 1;
 
         yield { type: 'visit', at: node };
-
-        if (eq(goal, node)) break;
 
         for (const neigh of neighbors4(node)) {
             if (!inb(neigh) || isWall(neigh)) continue;
@@ -47,6 +47,10 @@ export const bfs: PathFinder = function* (grid) {
             yield { type: 'enqueue', at: neigh };
             parent[nid] = cid;
             seen[nid] = 1;
+            if (eq(goal, neigh)) {
+                found = true;
+                break;
+            }
 
             queue.push(neigh);
         }

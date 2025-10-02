@@ -12,7 +12,7 @@ export type GridPalette = {
     // overlay (algorithms)
     frontier: string;
     visited: string;
-    pathStroke: string;
+    pathCell: string;
 };
 
 export const lightPalette: GridPalette = {
@@ -26,7 +26,7 @@ export const lightPalette: GridPalette = {
 
     frontier: 'rgba(59,130,246,0.35)', // blue-ish
     visited: 'rgba(234,179,8,0.35)', // amber-ish
-    pathStroke: '#22c55e', // green
+    pathCell: '#22c55e', // green
 };
 
 // optional dark theme you can swap in later
@@ -41,5 +41,5 @@ export const darkPalette: GridPalette = {
 
     frontier: 'rgba(59,130,246,0.45)',
     visited: 'rgba(250,204,21,0.45)',
-    pathStroke: '#22c55e',
+    pathCell: '#22c55e',
 };
