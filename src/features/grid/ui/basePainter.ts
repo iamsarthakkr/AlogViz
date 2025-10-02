@@ -83,6 +83,7 @@ export function drawBaseScene(
         ctx.stroke();
     }
 
+    ctx.lineWidth = 2;
     ctx.strokeRect(0.5, 0.5, cols * cellSize - 1, rows * cellSize - 1);
 
     // markers
