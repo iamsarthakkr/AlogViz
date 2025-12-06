@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { CanvasGridHandle } from './CanvasGrid';
-import { useAlgoController } from '../animations/useAlgoController';
-import { useSettingsStore } from '../store/useSettingsStore';
-import { speedToEPS } from '../utils';
-import { SpeedPreset } from '../types';
-import { bfs } from '../algo/bfs';
+import { CanvasGridHandle } from '@features/CanvasGrid';
+import { useAlgoController } from '@features/animations';
+import { useSettingsStore } from '@features/store';
+import { bfs } from '@features/algo/bfs';
+import { speedToEPS } from '@/utils/settings';
+import { SpeedPreset } from '@/types/settings';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;
@@ -14,7 +14,7 @@ type Props = {
 
 const registry = { bfs };
 
-const AlgoControls = ({ ctx }: Props) => {
+export const AlgoControls = ({ ctx }: Props) => {
     const { algoKey, speed, mazeGeneratorKey, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
 
     const algoController = useAlgoController(ctx, registry);
@@ -121,5 +121,3 @@ const AlgoControls = ({ ctx }: Props) => {
         </div>
     );
 };
-
-export default AlgoControls;

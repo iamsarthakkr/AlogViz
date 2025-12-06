@@ -1,6 +1,4 @@
-import { Coord, Grid } from '../types';
-
-export type GridSnapShot = Grid;
+import { Coord, GridSnapShot } from './grid';
 
 export type EnqueueEvent = { type: 'enqueue'; at: Coord };
 export type VisitEvent = { type: 'visit'; at: Coord };

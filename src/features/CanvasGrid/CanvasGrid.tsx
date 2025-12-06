@@ -2,22 +2,11 @@
 
 import React, { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { useGridStore } from '@/features/grid/store/useGridStore';
-import { CellKind } from '@/features/grid/types';
+import { Brush, CellKind, DragMode } from '@/types/grid';
+import { useGridStore } from '@features/store';
 import { CanvasStage, CanvasStageHandle } from '@/components/CanvasStage';
-import { clearOverlay } from './overlayPainter';
-import { drawBaseScene } from './basePainter';
+import { clearOverlay, drawBaseScene } from '@features/painters';
 
-enum DragMode {
-    None,
-    Paint,
-    MoveStart,
-    MoveGoal,
-}
-enum Brush {
-    Wall,
-    Erase,
-}
 function useRafJob() {
     const rafId = useRef(0);
     const schedule = useCallback((job: () => void) => {
@@ -46,7 +35,7 @@ type CanvasGridProps = {
     className?: string;
 };
 
-const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
+export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
     { interactive = true, style, className }: CanvasGridProps,
     ref,
 ) {
@@ -194,5 +183,3 @@ const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function Canvas
         </div>
     );
 });
-
-export default CanvasGrid;

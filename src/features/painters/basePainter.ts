@@ -1,4 +1,4 @@
-import type { Coord } from '@/features/grid/types';
+import { CellKind, Coord } from '@/types/grid';
 import { lightPalette as palette } from './colors';
 
 function center(p: Coord, s: number) {
@@ -48,7 +48,7 @@ export function drawBaseScene(
     rows: number,
     cols: number,
     cellSize: number,
-    cells: ('empty' | 'wall')[],
+    cells: CellKind[],
     start: Coord,
     goal: Coord,
 ) {
@@ -60,7 +60,7 @@ export function drawBaseScene(
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const kind = cells[r * cols + c];
-            ctx.fillStyle = kind === 'wall' ? palette.cellWall : palette.cellEmpty;
+            ctx.fillStyle = kind === CellKind.wall ? palette.cellWall : palette.cellEmpty;
             ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
         }
     }

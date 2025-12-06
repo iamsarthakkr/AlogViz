@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useRef } from 'react';
-import CanvasGrid, { CanvasGridHandle } from '../ui/CanvasGrid';
-import Toolbar from '../ui/Toolbar';
+import { CanvasGrid, CanvasGridHandle } from '@features/CanvasGrid';
+import { Toolbar } from '@features/Toolbar';
 
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);

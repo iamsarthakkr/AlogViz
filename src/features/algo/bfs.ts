@@ -1,6 +1,6 @@
 import { Queue } from '@/store/queue';
-import { CellKind, Coord } from '../types';
-import { PathFinder } from './types';
+import { CellKind, Coord } from '@/types/grid';
+import { PathFinder } from '@/types/algo';
 
 const eq = (a: Coord, b: Coord) => a.r === b.r && a.c === b.c;
 
@@ -12,7 +12,7 @@ const neighbors4 = (p: Coord): Coord[] => {
     return out;
 };
 
-export const bfs: PathFinder = function* (grid) {
+export const bfs: PathFinder = function*(grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;

@@ -1,15 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AlgoEvent, PathFinder } from '@/features/grid/algo/types';
-import type { CanvasGridHandle } from '@/features/grid/ui/CanvasGrid';
-import { useGridStore } from '@/features/grid/store/useGridStore';
+import { Callback, Callback1 } from '@/types/common';
+import type { AlgoEvent, PathFinder } from '@/types/algo';
+import type { CanvasGridHandle } from '@features/CanvasGrid';
+import { useGridStore } from '@/features/store';
+import { paintAlgoEvent, clearOverlay, animateFinalPath, drawMarkers } from '@/features/painters';
 
-import { createRunner, RunnerApi } from '@/features/grid/animations/runner';
-import { paintAlgoEvent, clearOverlay, animateFinalPath } from '@/features/grid/ui/overlayPainter';
-import { getGridShapshot } from '../algo/getGridSnapshot';
-import { drawMarkers } from '../ui/basePainter';
-import { Callback, Callback1 } from '@/types';
+import { createRunner, RunnerApi } from './runner';
+import { getGridSnapshot } from './utils';
 
 export type AlgoController = {
     currentAlgo: string;
@@ -58,7 +57,7 @@ export function useAlgoController(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<() => void>(() => { });
+    const cancelPathAnimRef = useRef<() => void>(() => {});
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -72,7 +71,7 @@ export function useAlgoController(
             // stop any previous path animation for safety
             cancelPathAnimRef.current?.();
 
-            const snap = getGridShapshot();
+            const snap = getGridSnapshot();
             const { rows, cols, cellSize } = snap;
 
             // fresh overlay for new run

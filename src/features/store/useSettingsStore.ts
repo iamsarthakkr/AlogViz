@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SettingsState } from '../types';
+import { SettingsState } from '@/types/settings';
 
 export const useSettingsStore = create<SettingsState>((set) => {
     return {

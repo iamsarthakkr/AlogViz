@@ -1,7 +1,18 @@
 export type Coord = { r: number; c: number };
+
 export enum CellKind {
-    empty = 'empty',
-    wall = 'wall',
+    empty,
+    wall,
+}
+export enum DragMode {
+    None,
+    Paint,
+    MoveStart,
+    MoveGoal,
+}
+export enum Brush {
+    Wall,
+    Erase,
 }
 
 export type Grid = {
@@ -34,29 +45,4 @@ export type GridState = Grid & {
     reset(): void;
 };
 
-export type SpeedPreset = 'slow' | 'medium' | 'fast';
-export type SettingsState = {
-    algoKey: string;
-    speed: SpeedPreset;
-    isSettingsOpen: boolean;
-
-    // settings modal drafts
-    rowsDraft: number;
-    colsDraft: number;
-    cellSizeDraft: number;
-
-    // placeholder for maze generator
-    mazeGeneratorKey: string;
-
-    // actions
-    setAlgoKey: (k: string) => void;
-    setSpeed: (s: SpeedPreset) => void;
-
-    openSettings: (rows: number, cols: number, cellSize: number) => void;
-    closeSettings: () => void;
-    setDraftRows: (v: number) => void;
-    setDraftCols: (v: number) => void;
-    setDraftCell: (v: number) => void;
-
-    setMazeGeneratorKey: (k: string) => void;
-};
+export type GridSnapShot = Grid;

@@ -1,5 +1,5 @@
-import { AlgoEvent } from '../algo/types';
-import { Coord } from '../types';
+import { AlgoEvent } from '@/types/algo';
+import { Coord } from '@/types/grid';
 import { drawMarkers } from './basePainter';
 import { lightPalette as palette } from './colors';
 
@@ -35,7 +35,7 @@ export function animateFinalPath(
     nps = 240,
     onFrame?: () => void,
 ) {
-    if (!nodes.length) return () => {};
+    if (!nodes.length) return () => { };
     let i = 0;
     let raf = 0;
     const perFrame = Math.max(1, Math.ceil(nps / 60));

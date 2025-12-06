@@ -1,18 +1,14 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useGridStore } from '@/features/grid/store/useGridStore';
-import { speedToEPS } from '@features/grid/utils';
-import { AlgoController } from '@features/grid/animations/useAlgoController';
-import { useSettingsStore } from '../store/useSettingsStore';
-import { SpeedPreset } from '../types';
+import React from 'react';
+import { useGridStore, useSettingsStore } from '@features/store';
 
-type Props = {
-    algorithms: string[];
-    algoController: AlgoController;
-};
+// type Props = {
+//     algorithms: string[];
+//     algoController: AlgoController;
+// };
 
-const Settings = () => {
+export const Settings = () => {
     const {
         isSettingsOpen,
         openSettings,
@@ -44,10 +40,8 @@ const Settings = () => {
     return (
         <div className="w-full bg-white/80 backdrop-blur border-b border-gray-200">
             <div className="mx-auto max-w-6xl px-3 py-2 flex items-center gap-3">
-                {/* Title */}
                 <div className="text-lg font-semibold tracking-tight mr-2">AlgoViz</div>
 
-                {/* Settings */}
                 <button
                     className="ml-2 p-2 rounded-md border border-gray-300 hover:bg-gray-50"
                     onClick={onOpenSettings}
@@ -63,7 +57,6 @@ const Settings = () => {
                 </button>
             </div>
 
-            {/* Settings Modal */}
             {isSettingsOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/30" onClick={closeSettings} />
@@ -118,5 +111,3 @@ const Settings = () => {
         </div>
     );
 };
-
-export default Settings;

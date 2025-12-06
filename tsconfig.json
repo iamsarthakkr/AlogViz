@@ -20,7 +20,7 @@
         ],
         "paths": {
             "@features/*": ["./src/features/*"],
-            "@components/*": ["./src/components/*"],
+            "@ui/*": ["./src/ui/*"],
             "@/*": ["./src/*"]
         }
     },

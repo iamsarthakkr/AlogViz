@@ -1,7 +1,7 @@
-import { useGridStore } from '../store/useGridStore';
-import { GridSnapShot } from './types';
+import { GridSnapShot } from '@/types/grid';
+import { useGridStore } from '@features/store';
 
-export const getGridShapshot = (): GridSnapShot => {
+export const getGridSnapshot = (): GridSnapShot => {
     const state = useGridStore.getState();
     return {
         gridVersion: state.gridVersion,

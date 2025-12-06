@@ -1,7 +1,8 @@
 'use client';
 import { create } from 'zustand';
-import { CellKind, GridState } from '../types';
-import { clamp, initGrid, nearestEmptyCell } from '../utils';
+import { CellKind, GridState } from '@/types/grid';
+import { initGrid, nearestEmptyCell } from '@/utils/grid';
+import { clamp } from '@/utils/common';
 
 export const useGridStore = create<GridState>((set, get) => {
     const g = initGrid();
