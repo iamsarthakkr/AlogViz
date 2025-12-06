@@ -6,19 +6,7 @@ import { Brush, CellKind, DragMode } from '@/types/grid';
 import { useGridStore } from '@features/store';
 import { CanvasStage, CanvasStageHandle } from '@/components/CanvasStage';
 import { clearOverlay, drawBaseScene } from '@features/painters';
-
-function useRafJob() {
-    const rafId = useRef(0);
-    const schedule = useCallback((job: () => void) => {
-        if (rafId.current) cancelAnimationFrame(rafId.current);
-        rafId.current = requestAnimationFrame(() => {
-            rafId.current = 0;
-            job();
-        });
-    }, []);
-    useEffect(() => () => cancelAnimationFrame(rafId.current), []);
-    return schedule;
-}
+import { useRaf } from '@features/hooks/useRaf';
 
 /** The API CanvasGrid will expose to parents */
 export type CanvasGridHandle = {
@@ -49,8 +37,8 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
     const dragMode = useRef<DragMode>(DragMode.None);
     const brushRef = useRef<Brush>(Brush.Wall);
 
-    const schedule = useRafJob();
-    const scheduleOverlay = useRafJob();
+    const schedule = useRaf();
+    const scheduleOverlay = useRaf();
 
     // ----- expose API to parent -----
     useImperativeHandle(
@@ -70,14 +58,13 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
         [rows, cols, cellSize, cells, start, goal],
     );
 
-    // rAF-batched base redraw on content changes
+    // animation frames schedule
     useEffect(() => {
         const ctx = stageRef.current?.getBaseCtx();
         if (!ctx) return;
         schedule(() => drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal));
     }, [rows, cols, cellSize, cells, start, goal, schedule]);
 
-    // rAF-batched overlay clear on structural changes
     useEffect(() => {
         const ctx = stageRef.current?.getOverlayCtx();
         if (!ctx) return;
