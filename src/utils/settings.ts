@@ -5,3 +5,5 @@ export const speedToEPS: Record<SpeedPreset, number> = {
     medium: 220,
     fast: 600,
 };
+
+export const availableSpeeds: SpeedPreset[] = ['slow', 'medium', 'fast'];

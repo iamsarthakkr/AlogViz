@@ -1,11 +1,13 @@
+import { AlgoStatus } from '@/types/algo';
+
 export type RunnerApi<TYield> = {
     play(): void;
     pause(): void;
     step(): IteratorResult<TYield, void>;
     skipToEnd(): void;
-    setSpeed(eps: number): void; // events per second
+    setSpeed(eps: number): void;
     isRunning(): boolean;
-    finished: Promise<void>; // resolves when generator completes
+    getStatus(): AlgoStatus;
 };
 
 type RunnerOptions = {
@@ -20,13 +22,12 @@ export function createRunner<TYield>(
     onEvent: (e: TYield) => void,
     opts: RunnerOptions = {},
 ): RunnerApi<TYield> {
+    let status: AlgoStatus = AlgoStatus.initial;
     let running = false;
+
     let rafId = 0;
     let eps = Math.max(1, opts.speed ?? 120);
     const maxBatch = Math.max(1, opts.maxBatchPerFrame ?? 1000);
-
-    let resolveFinished!: () => void;
-    const finished = new Promise<void>((res) => (resolveFinished = res));
 
     const perFrame = () => Math.min(maxBatch, Math.max(1, Math.ceil(eps / 60)));
 
@@ -34,10 +35,11 @@ export function createRunner<TYield>(
         if (!running) return;
         const n = perFrame();
         for (let i = 0; i < n; i++) {
+            if (!running) return;
             const res = gen.next();
             if (res.done) {
                 running = false;
-                resolveFinished();
+                status = AlgoStatus.done;
                 opts.onFinish?.();
                 return;
             }
@@ -50,18 +52,23 @@ export function createRunner<TYield>(
         play() {
             if (running) return;
             running = true;
+            status = AlgoStatus.running;
             rafId = requestAnimationFrame(tick);
         },
         pause() {
             if (!running) return;
             running = false;
+            status = AlgoStatus.paused;
             cancelAnimationFrame(rafId);
         },
         step() {
+            running = false;
             const res = gen.next();
-            if (!res.done) onEvent(res.value);
-            else {
-                resolveFinished();
+            if (!res.done) {
+                status = AlgoStatus.paused;
+                onEvent(res.value);
+            } else {
+                status = AlgoStatus.done;
                 opts.onFinish?.();
             }
             return res;
@@ -72,8 +79,10 @@ export function createRunner<TYield>(
                 res = gen.next();
                 if (!res.done) onEvent(res.value);
             } while (!res.done);
+
+            status = AlgoStatus.done;
+            running = false;
             controls.pause();
-            resolveFinished();
             opts.onFinish?.();
         },
         setSpeed(newEps: number) {
@@ -82,8 +91,8 @@ export function createRunner<TYield>(
         isRunning() {
             return running;
         },
-        get finished() {
-            return finished;
+        getStatus() {
+            return status;
         },
     };
 

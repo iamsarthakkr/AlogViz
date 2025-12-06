@@ -1,5 +1,12 @@
 import { Coord, GridSnapShot } from './grid';
 
+export enum AlgoStatus {
+    initial = 0,
+    running,
+    paused,
+    done,
+}
+
 export type EnqueueEvent = { type: 'enqueue'; at: Coord };
 export type VisitEvent = { type: 'visit'; at: Coord };
 export type PathEvent = { type: 'path'; nodes: Coord[]; visited: number };

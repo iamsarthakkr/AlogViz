@@ -4,98 +4,61 @@ import React from 'react';
 import { CanvasGridHandle } from '@features/CanvasGrid';
 import { useAlgoController } from '@features/animations';
 import { useSettingsStore } from '@features/store';
-import { bfs } from '@features/algo/bfs';
-import { speedToEPS } from '@/utils/settings';
+import { availableSpeeds, speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
+import { algorithms } from '@features/algo';
+import { Dropdown } from '@/components/Dropdown';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;
 };
 
-const registry = { bfs };
+const mazes = ['Random Walls', 'Recursive Division', "Prim's"];
 
 export const AlgoControls = ({ ctx }: Props) => {
     const { algoKey, speed, mazeGeneratorKey, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
-
-    const algoController = useAlgoController(ctx, registry);
+    const algoController = useAlgoController(ctx, algorithms);
+    const algoKeys = Object.keys(algorithms).map((x) => x.toUpperCase());
 
     const onAlgoChange = (k: string) => {
         setAlgoKey(k);
         algoController.setAlgorithm(k);
     };
 
-    const onSpeedChange = (preset: SpeedPreset) => {
-        setSpeed(preset);
-        algoController.setSpeed(speedToEPS[preset]);
+    const onSpeedChange = (preset: string) => {
+        setSpeed(preset as SpeedPreset);
+        algoController.setSpeed(speedToEPS[preset as SpeedPreset]);
     };
+
     return (
-        <div className="mx-auto max-w-6xl px-3 py-2 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Algorithm</label>
-                <select
-                    className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={algoKey ?? algoController.currentAlgo}
-                    onChange={(e) => onAlgoChange(e.target.value)}
-                >
-                    <option key={1} value={'bfs'}>
-                        BFS
-                    </option>
-                    {/* {algorithms.map((k) => ( */}
-                    {/*     <option key={k} value={k}> */}
-                    {/*         {k.toUpperCase()} */}
-                    {/*     </option> */}
-                    {/* ))} */}
-                </select>
+        <div className="w-full px-3 flex flex-1 items-center justify-between gap-3">
+            <div className="flex flex-1 items-center gap-2">
+                <Dropdown
+                    title={algoKey ? algoKey : 'Algorithm'}
+                    options={algoKeys}
+                    onSelect={onAlgoChange}
+                    className="w-30 font-semibold"
+                />
+                <Dropdown
+                    title={mazeGeneratorKey ? mazeGeneratorKey : 'Mazes & Patterns'}
+                    options={mazes}
+                    onSelect={setMazeGeneratorKey}
+                    className="w-50 font-semibold"
+                />
             </div>
 
-            {/* Speed */}
-            <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Speed</label>
-                <select
-                    className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={speed}
-                    onChange={(e) => onSpeedChange(e.target.value as SpeedPreset)}
-                >
-                    <option value="slow">Slow</option>
-                    <option value="medium">Medium</option>
-                    <option value="fast">Fast</option>
-                </select>
-            </div>
-
-            {/* Maze generator (placeholder) */}
-            <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Maze</label>
-                <select
-                    className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={mazeGeneratorKey ?? ''}
-                    onChange={(e) => setMazeGeneratorKey(e.target.value || '')}
-                >
-                    <option value="">— Select —</option>
-                    <option value="random">Random walls</option>
-                    <option value="recursive-division" disabled>
-                        Recursive Division (soon)
-                    </option>
-                    <option value="prims" disabled>
-                        Prim’s (soon)
-                    </option>
-                </select>
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Transport */}
-            <div className="flex items-center gap-2">
+            <div className="flex  items-center justify-center gap-2">
                 <button
-                    className="px-2 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-50"
-                    onClick={algoController.step}
-                    title="Step"
+                    className="px-3 py-2 w-30 rounded-md font-semibold bg-indigo-600 text-white text-sm hover:brightness-95"
+                    onClick={algoController.play}
+                    title="Visualize"
+                    disabled={algoController.status === 'running'}
                 >
-                    Step
+                    Visualize
                 </button>
                 {algoController.status === 'running' ? (
                     <button
-                        className="px-2 py-1 rounded-md bg-amber-500 text-white text-sm hover:brightness-95"
+                        className="px-3 py-2 w-20 rounded-md font-semibold border bg-primary border-none text-white text-sm hover:text-secondary"
                         onClick={algoController.pause}
                         title="Pause"
                     >
@@ -103,20 +66,30 @@ export const AlgoControls = ({ ctx }: Props) => {
                     </button>
                 ) : (
                     <button
-                        className="px-2 py-1 rounded-md bg-indigo-600 text-white text-sm hover:brightness-95"
-                        onClick={algoController.play}
-                        title="Play"
+                        className="px-3 py-2 w-20 font-semibold rounded-md border bg-primary border-none text-white text-sm hover:text-secondary"
+                        onClick={algoController.step}
+                        title="Step"
                     >
-                        Play
+                        Step
                     </button>
                 )}
+            </div>
+
+            <div className="flex flex-1 font-semibold items-center justify-center gap-2">
                 <button
-                    className="px-2 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-50"
-                    onClick={algoController.skipToEnd}
-                    title="Skip to end"
+                    className="px-3 py-2 w-30 rounded-md font-semibold border bg-primary border-none text-white text-sm hover:text-secondary"
+                    onClick={algoController.clear}
+                    title="Clear path"
+                    disabled={algoController.status === 'running'}
                 >
-                    Skip
+                    Clear path
                 </button>
+                <Dropdown
+                    title={`Speed: ${speed}`}
+                    options={availableSpeeds}
+                    onSelect={onSpeedChange}
+                    className="w-40 font-semibold"
+                />
             </div>
         </div>
     );

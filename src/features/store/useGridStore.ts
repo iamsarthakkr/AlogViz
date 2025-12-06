@@ -42,7 +42,7 @@ export const useGridStore = create<GridState>((set, get) => {
                 return { rows, cols, cells, start, goal, gridVersion: s.gridVersion + 1 };
             }),
 
-        setCellSize: (px) => set({ cellSize: clamp(px, 8, 64) }),
+        setCellSize: (px) => set({ cellSize: clamp(px, 8, 64), gridVersion: get().gridVersion + 1 }),
 
         setCell: (r, c, kind) =>
             set((s: GridState) => {
