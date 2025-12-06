@@ -4,20 +4,17 @@ import React from 'react';
 import { CanvasGridHandle } from '@features/CanvasGrid';
 import { useAlgoController } from '@features/animations';
 import { useSettingsStore } from '@features/store';
-import { bfs } from '@features/algo/bfs';
 import { speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
+import { algorithms } from '@features/algo';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;
 };
 
-const registry = { bfs };
-
 export const AlgoControls = ({ ctx }: Props) => {
     const { algoKey, speed, mazeGeneratorKey, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
-
-    const algoController = useAlgoController(ctx, registry);
+    const algoController = useAlgoController(ctx, algorithms);
 
     const onAlgoChange = (k: string) => {
         setAlgoKey(k);
@@ -37,14 +34,11 @@ export const AlgoControls = ({ ctx }: Props) => {
                     value={algoKey ?? algoController.currentAlgo}
                     onChange={(e) => onAlgoChange(e.target.value)}
                 >
-                    <option key={1} value={'bfs'}>
-                        BFS
-                    </option>
-                    {/* {algorithms.map((k) => ( */}
-                    {/*     <option key={k} value={k}> */}
-                    {/*         {k.toUpperCase()} */}
-                    {/*     </option> */}
-                    {/* ))} */}
+                    {Object.keys(algorithms).map((k) => (
+                        <option key={k} value={k}>
+                            {k.toUpperCase()}
+                        </option>
+                    ))}
                 </select>
             </div>
 
@@ -86,13 +80,6 @@ export const AlgoControls = ({ ctx }: Props) => {
 
             {/* Transport */}
             <div className="flex items-center gap-2">
-                <button
-                    className="px-2 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-50"
-                    onClick={algoController.step}
-                    title="Step"
-                >
-                    Step
-                </button>
                 {algoController.status === 'running' ? (
                     <button
                         className="px-2 py-1 rounded-md bg-amber-500 text-white text-sm hover:brightness-95"
@@ -112,10 +99,10 @@ export const AlgoControls = ({ ctx }: Props) => {
                 )}
                 <button
                     className="px-2 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-50"
-                    onClick={algoController.skipToEnd}
-                    title="Skip to end"
+                    onClick={algoController.step}
+                    title="Step"
                 >
-                    Skip
+                    Step
                 </button>
             </div>
         </div>

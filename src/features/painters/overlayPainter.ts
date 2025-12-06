@@ -2,6 +2,7 @@ import { AlgoEvent } from '@/types/algo';
 import { Coord } from '@/types/grid';
 import { drawMarkers } from './basePainter';
 import { lightPalette as palette } from './colors';
+import { Callback } from '@/types/common';
 
 export function clearOverlay(ctx: CanvasRenderingContext2D, rows: number, cols: number, s: number) {
     ctx.clearRect(0, 0, cols * s, rows * s);
@@ -18,7 +19,12 @@ function fillPathCell(ctx: CanvasRenderingContext2D, cell: Coord, s: number) {
 }
 
 /** draw the whole path instantly (cells) */
-function fillWholePath(ctx: CanvasRenderingContext2D, nodes: Coord[], s: number, opts?: { skipEndpoints?: boolean }) {
+export function drawFinalPath(
+    ctx: CanvasRenderingContext2D,
+    nodes: Coord[],
+    s: number,
+    opts?: { skipEndpoints?: boolean },
+) {
     if (!nodes.length) return;
     const startIdx = opts?.skipEndpoints ? 1 : 0;
     const endIdx = opts?.skipEndpoints ? nodes.length - 1 : nodes.length;
@@ -33,7 +39,7 @@ export function animateFinalPath(
     nodes: Coord[],
     s: number,
     nps = 240,
-    onFrame?: () => void,
+    onFrame?: Callback,
 ) {
     if (!nodes.length) return () => { };
     let i = 0;
@@ -44,7 +50,7 @@ export function animateFinalPath(
         for (let k = 0; k < perFrame && i < nodes.length; k++, i++) {
             fillPathCell(ctx, nodes[i], s);
         }
-        onFrame?.();
+        if (onFrame) onFrame();
         if (i < nodes.length) raf = requestAnimationFrame(step);
     };
 
@@ -70,9 +76,9 @@ export function paintAlgoEvent(
             fillCell(ctx, e.at.r, e.at.c, cellSize, palette.visited);
             break;
         case 'path':
-            if (opts?.drawPathInstant) fillWholePath(ctx, e.nodes, cellSize);
+            if (opts?.drawPathInstant) drawFinalPath(ctx, e.nodes, cellSize);
             break;
     }
 
-    if (opts?.start && opts.goal) drawMarkers(ctx, opts.start, opts.goal, cellSize);
+    if (opts?.start && opts?.goal) drawMarkers(ctx, opts.start, opts.goal, cellSize);
 }
