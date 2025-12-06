@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@plugin "daisyui" {
+    prefix: 'd-';
+}
 
 :root {
     --background: #ffffff;
@@ -10,6 +13,8 @@
     --color-foreground: var(--foreground);
     --font-sans: var(--font-montrerrat);
     --font-mono: var(--font-geist-mono);
+    --color-primary: #014f56;
+    --color-secondary: #91f7ed;
 }
 
 html,

@@ -8,7 +8,7 @@ export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
 
     return (
-        <div className="w-full flex flex-col justify-center items-center p-2">
+        <div className="w-full flex flex-col justify-center items-center">
             <Toolbar ctx={gridRef} className="mb-5" />
             <CanvasGrid ref={gridRef} />
         </div>

@@ -3,7 +3,7 @@ import { SettingsState } from '@/types/settings';
 
 export const useSettingsStore = create<SettingsState>((set) => {
     return {
-        algoKey: 'bfs',
+        algoKey: '',
         speed: 'medium',
 
         isSettingsOpen: false,

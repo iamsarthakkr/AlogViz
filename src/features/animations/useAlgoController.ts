@@ -20,6 +20,7 @@ export type AlgoController = {
     pathLen: number | null;
     visitedApprox: number;
 
+    clear: Callback;
     play: Callback;
     pause: Callback;
     step: Callback;
@@ -58,7 +59,7 @@ export function useAlgoController(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<Callback>(() => { });
+    const cancelPathAnimRef = useRef<Callback>(() => {});
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -67,7 +68,7 @@ export function useAlgoController(
         (snap: GridSnapShot, instant: boolean): ((e: AlgoEvent) => void) => {
             const ctx = gridRef.current?.getOverlayCtx() ?? null;
             if (!ctx) {
-                return () => { };
+                return () => {};
             }
 
             const { cellSize } = snap;
@@ -219,6 +220,11 @@ export function useAlgoController(
         [getOrCreateCurrent],
     );
 
+    const clear = useCallback(() => {
+        createRunnerFor(currentKeyRef.current);
+        gridRef.current?.clearOverlay();
+    }, [createRunnerFor, gridRef]);
+
     // Cleanup on unmount
     const cleanup = () => {
         for (const r of runners.current.values()) r.runner.pause();
@@ -237,6 +243,7 @@ export function useAlgoController(
         pathLen,
         visitedApprox,
 
+        clear,
         play,
         pause,
         step,
