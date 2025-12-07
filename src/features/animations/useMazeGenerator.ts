@@ -18,8 +18,8 @@ type Options = {
     speed?: number; // EPS
 };
 
-export function useAlgoController(registry: MazeGeneratorRegistry, opts: Options = {}): MazeGeneratorApi {
-    const [speed] = useState<number>(opts.speed ?? 180);
+export function useMazeGenerator(registry: MazeGeneratorRegistry, opts: Options = {}): MazeGeneratorApi {
+    const [speed] = useState<number>(opts.speed ?? 120);
     const runnerRef = useRef<RunnerApi<MazeGeneratorEvent>>(null);
 
     const generateMaze = useCallback(
@@ -71,6 +71,7 @@ export function useAlgoController(registry: MazeGeneratorRegistry, opts: Options
                             gridApi.setGoal(goal.r, goal.c);
                             // enable updates on grid
                             gridApi.setGridLock(false);
+                            gridApi.refresh();
                             break;
                         default:
                             break;

@@ -8,16 +8,17 @@ import { availableSpeeds, speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
 import { algorithms } from '@features/algo';
 import { Dropdown } from '@/components/Dropdown';
+import { mazes, mazesLabels } from '@features/mazes';
+import { useMazeGenerator } from '@features/animations/useMazeGenerator';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;
 };
 
-const mazes = ['Random Walls', 'Recursive Division', "Prim's"];
-
 export const AlgoControls = ({ ctx }: Props) => {
     const { algoKey, speed, mazeGeneratorKey, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
     const algoController = useAlgoController(ctx, algorithms);
+    const mazeGenerator = useMazeGenerator(mazes);
     const algoKeys = Object.keys(algorithms).map((x) => x.toUpperCase());
 
     const onAlgoChange = (k: string) => {
@@ -31,6 +32,14 @@ export const AlgoControls = ({ ctx }: Props) => {
         algoController.setSpeed(speedToEPS[preset as SpeedPreset]);
     };
 
+    const onGenerateMaze = (key: string) => {
+        algoController.clear();
+
+        // call maze generator for key
+        mazeGenerator.generate(key);
+        setMazeGeneratorKey(key);
+    };
+
     return (
         <div className="w-full px-3 flex flex-1 items-center justify-between gap-3">
             <div className="flex flex-1 items-center gap-2">
@@ -42,8 +51,8 @@ export const AlgoControls = ({ ctx }: Props) => {
                 />
                 <Dropdown
                     title={mazeGeneratorKey ? mazeGeneratorKey : 'Mazes & Patterns'}
-                    options={mazes}
-                    onSelect={setMazeGeneratorKey}
+                    options={mazesLabels}
+                    onSelect={onGenerateMaze}
                     className="w-50 font-semibold"
                 />
             </div>
