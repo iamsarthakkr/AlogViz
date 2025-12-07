@@ -1,16 +1,7 @@
 import { Queue } from '@/store/queue';
 import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
-
-const eq = (a: Coord, b: Coord) => a.r === b.r && a.c === b.c;
-
-const neighbors4 = (p: Coord): Coord[] => {
-    const dr = [-1, 1, 0, 0];
-    const dc = [0, 0, -1, 1];
-    const out: Coord[] = [];
-    for (let k = 0; k < 4; k++) out.push({ r: p.r + dr[k], c: p.c + dc[k] });
-    return out;
-};
+import { equal, neighbors4 } from './utils';
 
 export const bfs: PathFinder = function*(grid) {
     const { rows, cols, cells, start, goal } = grid;
@@ -47,7 +38,7 @@ export const bfs: PathFinder = function*(grid) {
             yield { type: 'enqueue', at: neigh };
             parent[nid] = cid;
             seen[nid] = 1;
-            if (eq(goal, neigh)) {
+            if (equal(goal, neigh)) {
                 found = true;
                 break;
             }
