@@ -88,6 +88,8 @@ export function useAlgoController(
                     setStatus('done');
                     setPathLen(event.nodes.length);
 
+                    api.setGridLock(false);
+
                     if (!instant && event.nodes.length) {
                         if (cancelPathAnimRef.current) {
                             cancelPathAnimRef.current();
@@ -198,6 +200,10 @@ export function useAlgoController(
     const play = useCallback(() => {
         const runner = getOrCreateCurrent();
         if (!runner) return;
+
+        const api = useGridStore.getState();
+        api.setGridLock(true);
+
         runner.play();
         setStatus('running');
     }, [getOrCreateCurrent]);
@@ -205,6 +211,10 @@ export function useAlgoController(
     const pause = useCallback(() => {
         const runner = getOrCreateCurrent();
         if (!runner) return;
+
+        const api = useGridStore.getState();
+        api.setGridLock(false);
+
         runner.pause();
         setStatus('paused');
     }, [getOrCreateCurrent]);
@@ -225,6 +235,10 @@ export function useAlgoController(
         const runner = getOrCreateCurrent();
         if (!runner) return;
         runner.skipToEnd();
+
+        const api = useGridStore.getState();
+        api.setGridLock(false);
+
         if (!sawPathEventRef.current) setPathLen(0);
         setStatus('done');
     }, [getOrCreateCurrent]);
