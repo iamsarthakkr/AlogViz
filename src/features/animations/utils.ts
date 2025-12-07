@@ -13,5 +13,6 @@ export const getGridSnapshot = (): GridSnapShot | null => {
         start: { ...state.start },
         goal: { ...state.goal },
         cellSize: state.cellSize,
+        gridLock: state.gridLock,
     };
 };
