@@ -51,7 +51,9 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
             },
             redrawBase: () => {
                 const ctx = stageRef.current?.getBaseCtx();
-                if (ctx) drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal);
+                const api = useGridStore.getState();
+                if (ctx)
+                    drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal, api.validStart(), api.validGoal());
             },
         }),
         [rows, cols, cellSize, cells, start, goal],
@@ -61,7 +63,8 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
     useEffect(() => {
         const ctx = stageRef.current?.getBaseCtx();
         if (!ctx) return;
-        schedule(() => drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal));
+        const api = useGridStore.getState();
+        schedule(() => drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal, api.validStart(), api.validGoal()));
     }, [rows, cols, cellSize, cells, start, goal, schedule]);
 
     useEffect(() => {

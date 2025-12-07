@@ -73,7 +73,15 @@ export function useAlgoController(
 
             const { cellSize } = snap;
             return (event) => {
-                paintAlgoEvent(ctx, cellSize, event, { start: snap.start, goal: snap.goal, drawPathInstant: instant });
+                const api = useGridStore.getState();
+
+                paintAlgoEvent(ctx, cellSize, event, {
+                    start: snap.start,
+                    goal: snap.goal,
+                    validStart: api.validStart(),
+                    validGoal: api.validGoal(),
+                    drawPathInstant: instant,
+                });
                 if (event.type === 'visit') setVisitedApprox((v) => v + 1);
                 if (event.type === 'path') {
                     sawPathEventRef.current = true;
@@ -89,7 +97,15 @@ export function useAlgoController(
                             event.nodes,
                             cellSize,
                             opts.pathNps ?? 240,
-                            () => drawMarkers(ctx, snap.start, snap.goal, snap.cellSize),
+                            () =>
+                                drawMarkers(
+                                    ctx,
+                                    snap.start,
+                                    snap.goal,
+                                    api.validStart(),
+                                    api.validGoal(),
+                                    snap.cellSize,
+                                ),
                         );
                     }
                 }
@@ -104,6 +120,9 @@ export function useAlgoController(
             if (!algo) return null;
 
             const snap = getGridSnapshot();
+            if (!snap) {
+                return;
+            }
 
             // stop any previous path animation for safety
             cancelPathAnimRef.current?.();
