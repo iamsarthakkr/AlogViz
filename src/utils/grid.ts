@@ -22,7 +22,7 @@ export const nearestEmptyCell = (r: number, c: number, rows: number, cols: numbe
     ];
     while (q.length) {
         const [rr, cc] = q.shift()!;
-        if (cells[idx(rr, cc)] !== 'wall') return { r: rr, c: cc };
+        if (cells[idx(rr, cc)] !== CellKind.wall) return { r: rr, c: cc };
         for (const [dr, dc] of deltas) {
             const nr = rr + dr,
                 nc = cc + dc,

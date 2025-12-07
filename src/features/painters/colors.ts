@@ -17,23 +17,23 @@ export type GridPalette = {
 
 export const lightPalette: GridPalette = {
     cellEmpty: '#ffffff',
-    cellWall: '#3c3f46',
-    gridLine: '#e5e7eb',
+    cellWall: '#05181c',
+    gridLine: '#8fade8',
     background: '#ffffff',
 
     start: '#10b981',
     goal: '#ef4444',
 
-    frontier: 'rgba(59,130,246,0.35)', // blue-ish
-    visited: 'rgba(234,179,8,0.35)', // amber-ish
-    pathCell: '#22c55e', // green
+    frontier: 'rgba(139, 209, 221, 0.5)', // blue-ish
+    visited: 'rgba(81, 213, 239, 0.7)', // amber-ish
+    pathCell: '#efea51', // green
 };
 
 // optional dark theme you can swap in later
 export const darkPalette: GridPalette = {
     cellEmpty: '#0b0e14',
     cellWall: '#2b2f37',
-    gridLine: '#1f2430',
+    gridLine: '#8fade8',
     background: '#0b0e14',
 
     start: '#10b981',

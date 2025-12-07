@@ -32,9 +32,41 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function CanvasStage(
         h = rows * cellSize;
 
     return (
-        <div style={{ ...style, position: 'relative', width: w, height: h }} className={className}>
-            <canvas ref={base.ref} style={{ position: 'absolute', inset: 0 }} />
-            <canvas ref={overlay.ref} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+        <div
+            style={{
+                ...style,
+                position: 'relative',
+                width: `${w}px`,
+                height: `${h}px`,
+                margin: 0,
+                padding: 0,
+                border: 'none',
+            }}
+            className={className}
+        >
+            <canvas
+                ref={base.ref}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: `${w}px`,
+                    height: `${h}px`,
+                    zIndex: 0,
+                }}
+            />
+            <canvas
+                ref={overlay.ref}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: `${w}px`,
+                    height: `${h}px`,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                }}
+            />
         </div>
     );
 });
