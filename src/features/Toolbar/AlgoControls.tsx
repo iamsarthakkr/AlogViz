@@ -21,6 +21,7 @@ export const AlgoControls = ({ ctx }: Props) => {
     const algoKeys = Object.keys(algorithms).map((x) => x.toUpperCase());
 
     const onAlgoChange = (k: string) => {
+        k = k.toLocaleLowerCase();
         setAlgoKey(k);
         algoController.setAlgorithm(k);
     };

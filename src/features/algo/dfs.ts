@@ -1,9 +1,8 @@
-import { Queue } from '@/store/queue';
-import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
+import { CellKind, Coord } from '@/types/grid';
 import { equal, neighbors4 } from './utils';
 
-export const bfs: PathFinder = function*(grid) {
+export const dfs: PathFinder = function*(grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;
@@ -11,39 +10,48 @@ export const bfs: PathFinder = function*(grid) {
     const isWall = (s: Coord) => cells[id(s)] === CellKind.wall;
     const getCoord = (id: number): Coord => ({ r: Math.floor(id / cols), c: id % cols });
 
-    const queue: Queue<Coord> = new Queue(rows * cols);
+    const stack: Coord[] = [];
     const seen = new Uint8Array(rows * cols);
     const parent = new Int32Array(rows * cols).fill(-1);
 
-    queue.push(start);
+    stack.push(start);
     seen[id(start)] = 1;
-
     yield { type: 'enqueue', at: start };
 
     let visited = 0;
     let found = false;
-    while (queue.size()) {
+    while (stack.length > 0) {
         if (found) break;
-        const node = queue.pop()!;
-        const cid = id(node);
+
+        const u = stack.pop()!;
+        const cid = id(u);
+
         visited += 1;
+        yield { type: 'visit', at: u };
 
-        yield { type: 'visit', at: node };
+        if (equal(goal, u)) {
+            found = true;
+            break;
+        }
 
-        for (const neigh of neighbors4(node)) {
-            if (!inb(neigh) || isWall(neigh)) continue;
-            const nid = id(neigh);
+        const neighs = neighbors4(u);
+        for (let i = neighs.length - 1; i >= 0; --i) {
+            const v = neighs[i];
+
+            if (!inb(v) || isWall(v)) continue;
+            const nid = id(v);
             if (seen[nid]) continue;
 
-            yield { type: 'enqueue', at: neigh };
-            parent[nid] = cid;
             seen[nid] = 1;
-            if (equal(goal, neigh)) {
+            parent[nid] = cid;
+
+            stack.push(v);
+            yield { type: 'enqueue', at: v };
+
+            if (equal(goal, v)) {
                 found = true;
                 break;
             }
-
-            queue.push(neigh);
         }
     }
 
