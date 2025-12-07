@@ -15,7 +15,6 @@ function fillCell(ctx: CanvasRenderingContext2D, r: number, c: number, cellsize:
     ctx.fillRect(x, y, cellsize, cellsize);
 }
 
-/** single source of truth for "path cell" painting */
 function fillPathCell(ctx: CanvasRenderingContext2D, cell: Coord, cellsize: number) {
     ctx.fillStyle = palette.pathCell;
     const x = cell.c * cellsize,
@@ -24,7 +23,6 @@ function fillPathCell(ctx: CanvasRenderingContext2D, cell: Coord, cellsize: numb
     ctx.fillRect(x - offset, y - offset, cellsize + 2 * offset, cellsize + 2 * offset);
 }
 
-/** draw the whole path instantly (cells) */
 export function drawFinalPath(
     ctx: CanvasRenderingContext2D,
     nodes: Coord[],

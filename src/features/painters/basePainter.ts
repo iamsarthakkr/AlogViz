@@ -109,8 +109,8 @@ export function drawBaseScene(
             const x = c * cellSize;
             const y = r * cellSize;
 
-            ctx.fillRect(x - 0.25, y - 0.25, cellSize + 0.5, cellSize + 0.5);
-            // ctx.fillRect(x, y, cellsize, cellsize);
+            const offset = 0.25;
+            ctx.fillRect(x - offset, y - offset, cellSize + 2 * offset, cellSize + 2 * offset);
         }
     }
 
