@@ -1,8 +1,10 @@
 import { GridSnapShot } from '@/types/grid';
 import { useGridStore } from '@features/store';
 
-export const getGridSnapshot = (): GridSnapShot => {
+export const getGridSnapshot = (): GridSnapShot | null => {
     const state = useGridStore.getState();
+    if (!state.validStart() || !state.validGoal()) return null;
+
     return {
         gridVersion: state.gridVersion,
         rows: state.rows,

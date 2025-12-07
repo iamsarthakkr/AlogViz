@@ -59,7 +59,7 @@ export function useAlgoController(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<Callback>(() => {});
+    const cancelPathAnimRef = useRef<Callback>(() => { });
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -68,7 +68,7 @@ export function useAlgoController(
         (snap: GridSnapShot, instant: boolean): ((e: AlgoEvent) => void) => {
             const ctx = gridRef.current?.getOverlayCtx() ?? null;
             if (!ctx) {
-                return () => {};
+                return () => { };
             }
 
             const { cellSize } = snap;

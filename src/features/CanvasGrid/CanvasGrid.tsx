@@ -18,13 +18,12 @@ export type CanvasGridHandle = {
 
 type CanvasGridProps = {
     /** disable user edits while an algo runs, if you want */
-    interactive?: boolean;
     style?: React.CSSProperties;
     className?: string;
 };
 
 export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
-    { interactive = true, style, className }: CanvasGridProps,
+    { style, className }: CanvasGridProps,
     ref,
 ) {
     const [rows, cols, cellSize, cells, start, goal] = useGridStore(
@@ -93,11 +92,12 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
         const want: CellKind = brushRef.current === Brush.Wall ? CellKind.wall : CellKind.empty;
         if (api.cells[k] === want) return;
         api.setCell(r, c, want);
+        api.refresh();
     }, []);
 
     const onPointerDown = useCallback(
         (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!interactive) return;
+            if (useGridStore.getState().gridLock) return;
             e.preventDefault();
             const cv = e.currentTarget;
             try {
@@ -119,33 +119,31 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
                 paintAt(r, c);
             }
         },
-        [interactive, hitCell, paintAt],
+        [hitCell, paintAt],
     );
 
     const onPointerMove = useCallback(
         (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!interactive) return;
+            if (useGridStore.getState().gridLock) return;
             if (dragMode.current === DragMode.None) return;
+            const api = useGridStore.getState();
             const { r, c } = hitCell(e);
             if (dragMode.current === DragMode.Paint) paintAt(r, c);
-            else if (dragMode.current === DragMode.MoveStart) useGridStore.getState().setStart(r, c);
-            else if (dragMode.current === DragMode.MoveGoal) useGridStore.getState().setGoal(r, c);
+            else if (dragMode.current === DragMode.MoveStart) api.setStart(r, c);
+            else if (dragMode.current === DragMode.MoveGoal) api.setGoal(r, c);
+            api.refresh();
         },
-        [interactive, hitCell, paintAt],
+        [hitCell, paintAt],
     );
 
-    const onPointerUp = useCallback(
-        (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!interactive) return;
-            try {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-            } catch {
-                // no-op
-            }
-            dragMode.current = DragMode.None;
-        },
-        [interactive],
-    );
+    const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+        try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+            // no-op
+        }
+        dragMode.current = DragMode.None;
+    }, []);
     const width = cols * cellSize;
     const height = rows * cellSize;
 

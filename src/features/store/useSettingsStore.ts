@@ -13,6 +13,7 @@ export const useSettingsStore = create<SettingsState>((set) => {
         cellSizeDraft: 22,
 
         mazeGeneratorKey: '',
+        generatingMaze: false,
 
         setAlgoKey: (algoKey) => set({ algoKey }),
 
