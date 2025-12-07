@@ -8,17 +8,21 @@ export function clearOverlay(ctx: CanvasRenderingContext2D, rows: number, cols: 
     ctx.clearRect(0, 0, cols * s, rows * s);
 }
 
-function fillCell(ctx: CanvasRenderingContext2D, r: number, c: number, s: number, color: string) {
+function fillCell(ctx: CanvasRenderingContext2D, r: number, c: number, cellsize: number, color: string) {
     ctx.fillStyle = color;
-    ctx.fillRect(c * s, r * s, s, s);
+    const x = c * cellsize,
+        y = r * cellsize;
+    ctx.fillRect(x, y, cellsize, cellsize);
 }
 
-/** single source of truth for "path cell" painting */
-function fillPathCell(ctx: CanvasRenderingContext2D, cell: Coord, s: number) {
-    fillCell(ctx, cell.r, cell.c, s, palette.pathCell);
+function fillPathCell(ctx: CanvasRenderingContext2D, cell: Coord, cellsize: number) {
+    ctx.fillStyle = palette.pathCell;
+    const x = cell.c * cellsize,
+        y = cell.r * cellsize;
+    const offset = 0.25;
+    ctx.fillRect(x - offset, y - offset, cellsize + 2 * offset, cellsize + 2 * offset);
 }
 
-/** draw the whole path instantly (cells) */
 export function drawFinalPath(
     ctx: CanvasRenderingContext2D,
     nodes: Coord[],

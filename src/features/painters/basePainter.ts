@@ -43,6 +43,51 @@ export function drawMarkers(ctx: CanvasRenderingContext2D, start: Coord, goal: C
     drawGoalMarker(ctx, goal, s);
 }
 
+function drawGridLines(
+    ctx: CanvasRenderingContext2D,
+    rows: number,
+    cols: number,
+    cellSize: number,
+    cells: CellKind[],
+    color: string,
+) {
+    const id = (r: number, c: number) => r * cols + c;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 0.5;
+
+    // Horizontal grid segments
+    for (let r = 1; r < rows; r++) {
+        const y = r * cellSize;
+        for (let c = 0; c < cols; c++) {
+            const above = cells[id(r - 1, c)];
+            const below = cells[id(r, c)];
+
+            if (above === CellKind.wall && below === CellKind.wall) continue;
+
+            ctx.beginPath();
+            ctx.moveTo(c * cellSize, y);
+            ctx.lineTo((c + 1) * cellSize, y);
+            ctx.stroke();
+        }
+    }
+
+    for (let c = 1; c < cols; c++) {
+        const x = c * cellSize;
+        for (let r = 0; r < rows; r++) {
+            const left = cells[id(r, c - 1)];
+            const right = cells[id(r, c)];
+
+            if (left === CellKind.wall && right === CellKind.wall) continue;
+
+            ctx.beginPath();
+            ctx.moveTo(x, r * cellSize);
+            ctx.lineTo(x, (r + 1) * cellSize);
+            ctx.stroke();
+        }
+    }
+}
+
 export function drawBaseScene(
     ctx: CanvasRenderingContext2D,
     rows: number,
@@ -61,30 +106,21 @@ export function drawBaseScene(
         for (let c = 0; c < cols; c++) {
             const kind = cells[r * cols + c];
             ctx.fillStyle = kind === CellKind.wall ? palette.cellWall : palette.cellEmpty;
-            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            const x = c * cellSize;
+            const y = r * cellSize;
+
+            const offset = 0.25;
+            ctx.fillRect(x - offset, y - offset, cellSize + 2 * offset, cellSize + 2 * offset);
         }
     }
 
     // grid lines
-    ctx.strokeStyle = palette.gridLine;
-    ctx.lineWidth = 0.75;
-    for (let r = 1; r < rows; r++) {
-        const y = r * cellSize + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(cols * cellSize, y);
-        ctx.stroke();
-    }
-    for (let c = 1; c < cols; c++) {
-        const x = c * cellSize + 0.5;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, rows * cellSize);
-        ctx.stroke();
-    }
+    drawGridLines(ctx, rows, cols, cellSize, cells, palette.gridLine);
 
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0.5, 0.5, cols * cellSize - 1, rows * cellSize - 1);
+    // outer border
+    ctx.strokeStyle = palette.gridLine;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, cols * cellSize, rows * cellSize);
 
     // markers
     drawMarkers(ctx, start, goal, cellSize);

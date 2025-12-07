@@ -13,10 +13,14 @@ export function useCanvas(rows: number, cols: number, cellSize: number) {
 
         cv.style.width = `${cols * cellSize}px`;
         cv.style.height = `${rows * cellSize}px`;
-        cv.width = Math.floor(cols * cellSize * dpr);
-        cv.height = Math.floor(rows * cellSize * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.imageSmoothingEnabled = false;
+
+        cv.width = cols * cellSize * dpr;
+        cv.height = rows * cellSize * dpr;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        ctx.imageSmoothingEnabled = true;
         ctxRef.current = ctx;
     }, [rows, cols, cellSize]);
 
