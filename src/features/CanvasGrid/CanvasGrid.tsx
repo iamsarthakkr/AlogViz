@@ -26,7 +26,6 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
     { style, className }: CanvasGridProps,
     ref,
 ) {
-    // const { rows, cols, cellSize, cells, start, goal, gridVersion } = useGridStore();
     const [rows, cols, cellSize, cells, start, goal] = useGridStore(
         useShallow((s) => [s.rows, s.cols, s.cellSize, s.cells, s.start, s.goal] as const),
     );
