@@ -7,6 +7,7 @@ import { getGridSnapshot } from './utils';
 import { MazeGenerator, MazeGeneratorEvent } from '@/types/mazeGenerator';
 import { useGridStore } from '@features/store';
 import { CellKind } from '@/types/grid';
+import { Callback } from '@/types/common';
 
 export type MazeGeneratorApi = {
     generate: (key: string) => void;
@@ -21,33 +22,46 @@ type Options = {
 export function useMazeGenerator(registry: MazeGeneratorRegistry, opts: Options = {}): MazeGeneratorApi {
     const [speed] = useState<number>(opts.speed ?? 120);
     const runnerRef = useRef<RunnerApi<MazeGeneratorEvent>>(null);
+    const clearnupRef = useRef<Callback>(null);
 
     const generateMaze = useCallback(
         (key: string) => {
             const algo = registry[key];
             if (!algo) return null;
 
+            if (runnerRef.current) {
+                runnerRef.current.pause();
+                runnerRef.current = null;
+            }
+
+            if (clearnupRef.current) {
+                clearnupRef.current();
+                clearnupRef.current = null;
+            }
+
             const snap = getGridSnapshot();
             if (!snap) return null;
 
-            if (runnerRef.current) {
-                runnerRef.current.pause();
-            }
-
             const gridApi = useGridStore.getState();
+            const start = { ...gridApi.start };
+            const goal = { ...gridApi.goal };
 
             // block updates to grid
             gridApi.setGridLock(true);
-
             // remove start and goal
-            const start = gridApi.start;
-            const goal = gridApi.goal;
-
             gridApi.setStart(-1, -1);
             gridApi.setGoal(-1, -1);
 
-            const gen = algo(snap.rows, snap.cols);
+            clearnupRef.current = () => {
+                // set back start and goal
+                useGridStore.getState().setStart(start.r, start.c);
+                useGridStore.getState().setGoal(goal.r, goal.c);
+                // enable updates on grid
+                useGridStore.getState().setGridLock(false);
+                useGridStore.getState().refresh();
+            };
 
+            const gen = algo(snap.rows, snap.cols);
             runnerRef.current = createRunner(
                 gen,
                 (event) => {
@@ -66,12 +80,10 @@ export function useMazeGenerator(registry: MazeGeneratorRegistry, opts: Options 
                             gridApi.setCell(event.at.r, event.at.c, CellKind.wall);
                             break;
                         case 'done':
-                            // set back start and goal
-                            gridApi.setStart(start.r, start.c);
-                            gridApi.setGoal(goal.r, goal.c);
-                            // enable updates on grid
-                            gridApi.setGridLock(false);
-                            gridApi.refresh();
+                            if (clearnupRef.current) {
+                                clearnupRef.current();
+                                clearnupRef.current = null;
+                            }
                             break;
                         default:
                             break;
