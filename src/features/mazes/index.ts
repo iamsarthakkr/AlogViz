@@ -2,7 +2,7 @@ import { MazeGenerator } from '@/types/mazeGenerator';
 import { randomGenerator } from './random';
 import { floodFill } from './floodFill';
 import { prims } from './prims';
-import { recursiveDivision } from './recursiveDisision';
+import { recursiveDivision } from './recursiveDivision';
 
 export const mazes: Record<string, MazeGenerator> = {
     'Random Walls': randomGenerator,
