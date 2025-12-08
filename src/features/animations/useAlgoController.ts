@@ -254,6 +254,8 @@ export function useAlgoController(
     );
 
     const clear = useCallback(() => {
+        const currentKey = currentKeyRef.current ?? '';
+        runners.current.get(currentKey)?.runner.pause();
         createRunnerFor(currentKeyRef.current);
         gridRef.current?.clearOverlay();
     }, [createRunnerFor, gridRef]);
