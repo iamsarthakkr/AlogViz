@@ -4,6 +4,19 @@ export const random = (min: number, max: number) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+export const randomOdd = (min: number, max: number): number => {
+    if ((min & 1) === 0) min++;
+    if ((max & 1) === 0) max--;
+    if (min > max) throw new Error('No odd number in range');
+    return (random(min >> 1, max >> 1) << 1) | 1;
+};
+export const randomEven = (min: number, max: number): number => {
+    if (min & 1) min++;
+    if (max & 1) max--;
+    if (min > max) throw new Error('No even number in range');
+    return random(min >> 1, max >> 1) << 1;
+};
+
 export const shuffle = (a: Coord[]) => {
     for (let i = a.length - 1; i > 0; --i) {
         const j = random(0, i - 1);
