@@ -38,9 +38,16 @@ export function drawGoalMarker(ctx: CanvasRenderingContext2D, p: Coord, s: numbe
     ctx.stroke();
 }
 
-export function drawMarkers(ctx: CanvasRenderingContext2D, start: Coord, goal: Coord, s: number) {
-    drawStartMarker(ctx, start, s);
-    drawGoalMarker(ctx, goal, s);
+export function drawMarkers(
+    ctx: CanvasRenderingContext2D,
+    start: Coord,
+    goal: Coord,
+    validStart: boolean,
+    validGoal: boolean,
+    cellSize: number,
+) {
+    if (validStart) drawStartMarker(ctx, start, cellSize);
+    if (validGoal) drawGoalMarker(ctx, goal, cellSize);
 }
 
 function drawGridLines(
@@ -96,6 +103,8 @@ export function drawBaseScene(
     cells: CellKind[],
     start: Coord,
     goal: Coord,
+    validStart: boolean,
+    validGoal: boolean,
 ) {
     // background
     ctx.fillStyle = palette.background;
@@ -123,5 +132,5 @@ export function drawBaseScene(
     ctx.strokeRect(0, 0, cols * cellSize, rows * cellSize);
 
     // markers
-    drawMarkers(ctx, start, goal, cellSize);
+    drawMarkers(ctx, start, goal, validStart, validGoal, cellSize);
 }

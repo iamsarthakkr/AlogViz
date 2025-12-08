@@ -59,7 +59,7 @@ export function useAlgoController(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<Callback>(() => {});
+    const cancelPathAnimRef = useRef<Callback>(() => { });
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -68,17 +68,27 @@ export function useAlgoController(
         (snap: GridSnapShot, instant: boolean): ((e: AlgoEvent) => void) => {
             const ctx = gridRef.current?.getOverlayCtx() ?? null;
             if (!ctx) {
-                return () => {};
+                return () => { };
             }
 
             const { cellSize } = snap;
             return (event) => {
-                paintAlgoEvent(ctx, cellSize, event, { start: snap.start, goal: snap.goal, drawPathInstant: instant });
+                const api = useGridStore.getState();
+
+                paintAlgoEvent(ctx, cellSize, event, {
+                    start: snap.start,
+                    goal: snap.goal,
+                    validStart: api.validStart(),
+                    validGoal: api.validGoal(),
+                    drawPathInstant: instant,
+                });
                 if (event.type === 'visit') setVisitedApprox((v) => v + 1);
                 if (event.type === 'path') {
                     sawPathEventRef.current = true;
                     setStatus('done');
                     setPathLen(event.nodes.length);
+
+                    api.setGridLock(false);
 
                     if (!instant && event.nodes.length) {
                         if (cancelPathAnimRef.current) {
@@ -89,7 +99,15 @@ export function useAlgoController(
                             event.nodes,
                             cellSize,
                             opts.pathNps ?? 240,
-                            () => drawMarkers(ctx, snap.start, snap.goal, snap.cellSize),
+                            () =>
+                                drawMarkers(
+                                    ctx,
+                                    snap.start,
+                                    snap.goal,
+                                    api.validStart(),
+                                    api.validGoal(),
+                                    snap.cellSize,
+                                ),
                         );
                     }
                 }
@@ -104,6 +122,9 @@ export function useAlgoController(
             if (!algo) return null;
 
             const snap = getGridSnapshot();
+            if (!snap) {
+                return;
+            }
 
             // stop any previous path animation for safety
             cancelPathAnimRef.current?.();
@@ -179,6 +200,10 @@ export function useAlgoController(
     const play = useCallback(() => {
         const runner = getOrCreateCurrent();
         if (!runner) return;
+
+        const api = useGridStore.getState();
+        api.setGridLock(true);
+
         runner.play();
         setStatus('running');
     }, [getOrCreateCurrent]);
@@ -186,6 +211,10 @@ export function useAlgoController(
     const pause = useCallback(() => {
         const runner = getOrCreateCurrent();
         if (!runner) return;
+
+        const api = useGridStore.getState();
+        api.setGridLock(false);
+
         runner.pause();
         setStatus('paused');
     }, [getOrCreateCurrent]);
@@ -206,6 +235,10 @@ export function useAlgoController(
         const runner = getOrCreateCurrent();
         if (!runner) return;
         runner.skipToEnd();
+
+        const api = useGridStore.getState();
+        api.setGridLock(false);
+
         if (!sawPathEventRef.current) setPathLen(0);
         setStatus('done');
     }, [getOrCreateCurrent]);
@@ -221,6 +254,8 @@ export function useAlgoController(
     );
 
     const clear = useCallback(() => {
+        const currentKey = currentKeyRef.current ?? '';
+        runners.current.get(currentKey)?.runner.pause();
         createRunnerFor(currentKeyRef.current);
         gridRef.current?.clearOverlay();
     }, [createRunnerFor, gridRef]);

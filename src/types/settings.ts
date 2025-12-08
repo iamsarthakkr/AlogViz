@@ -9,7 +9,7 @@ export type SettingsState = {
     colsDraft: number;
     cellSizeDraft: number;
 
-    // placeholder for maze generator
+    // maze generation
     mazeGeneratorKey: string;
 
     // actions

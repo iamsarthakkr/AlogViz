@@ -18,6 +18,10 @@ export const useGridStore = create<GridState>((set, get) => {
             return s.cells[s.idx(r, c)];
         },
 
+        setGridLock: (flag) => {
+            set(() => ({ gridLock: flag }));
+        },
+
         setDimensions: (R, C) =>
             set((s: GridState) => {
                 const rows = clamp(R, 2, 300);
@@ -39,10 +43,10 @@ export const useGridStore = create<GridState>((set, get) => {
                     goal = { r: goal.r, c: altC === start.c ? clamp(goal.c - 1, 0, cols - 1) : altC };
                 }
 
-                return { rows, cols, cells, start, goal, gridVersion: s.gridVersion + 1 };
+                return { rows, cols, cells, start, goal };
             }),
 
-        setCellSize: (px) => set({ cellSize: clamp(px, 8, 64), gridVersion: get().gridVersion + 1 }),
+        setCellSize: (px) => set({ cellSize: clamp(px, 8, 64) }),
 
         setCell: (r, c, kind) =>
             set((s: GridState) => {
@@ -53,56 +57,53 @@ export const useGridStore = create<GridState>((set, get) => {
                 if (s.cells[k] === kind) return {};
                 const next = s.cells.slice();
                 next[k] = kind;
-                return { cells: next, gridVersion: s.gridVersion + 1 };
+                return { cells: next };
             }),
-
-        toggleWall: (r, c) => {
-            const s = get();
-            if (!s.inBounds(r, c)) return;
-            if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) return;
-            const k = s.idx(r, c);
-            const next = s.cells.slice();
-            next[k] = next[k] === CellKind.wall ? CellKind.empty : CellKind.wall;
-            set({ cells: next, gridVersion: s.gridVersion + 1 });
-        },
 
         clearWalls: () =>
             set((s: GridState) => ({
                 cells: s.cells.map(() => CellKind.empty),
-                gridVersion: s.gridVersion + 1,
             })),
 
-        randomWalls: (p) =>
-            set((s: GridState) => {
-                const prob = clamp(p, 0, 1);
-                const next = s.cells.slice();
-                for (let r = 0; r < s.rows; r++) {
-                    for (let c = 0; c < s.cols; c++) {
-                        if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) continue;
-                        next[r * s.cols + c] = Math.random() < prob ? CellKind.wall : CellKind.empty;
-                    }
-                }
-                return { cells: next, gridVersion: s.gridVersion + 1 };
-            }),
+        fillWalls: () =>
+            set((state) => ({
+                cells: state.cells.map(() => CellKind.wall),
+            })),
 
         setStart: (r, c) =>
             set((s: GridState) => {
+                if (r < 0 && c <= 0) {
+                    return { start: { r: -1, c: -1 } };
+                }
                 r = clamp(r, 0, s.rows - 1);
                 c = clamp(c, 0, s.cols - 1);
                 const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
                 if (snapped.r === s.goal.r && snapped.c === s.goal.c) return {};
-                return { start: snapped, gridVersion: s.gridVersion + 1 };
+                return { start: snapped };
             }),
 
         setGoal: (r, c) =>
             set((s: GridState) => {
+                if (r < 0 && c <= 0) {
+                    return { goal: { r: -1, c: -1 } };
+                }
                 r = clamp(r, 0, s.rows - 1);
                 c = clamp(c, 0, s.cols - 1);
                 const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
                 if (snapped.r === s.start.r && snapped.c === s.start.c) return {};
-                return { goal: snapped, gridVersion: s.gridVersion + 1 };
+                return { goal: snapped };
             }),
 
+        validStart: () => {
+            const s = get();
+            return s.inBounds(s.start.r, s.start.c);
+        },
+        validGoal: () => {
+            const s = get();
+            return s.inBounds(s.goal.r, s.goal.c);
+        },
+
+        refresh: () => set((s) => ({ gridVersion: s.gridVersion + 1 })),
         reset: () => set(initGrid()),
     };
 });
