@@ -9,7 +9,7 @@ export function drawStartMarker(ctx: CanvasRenderingContext2D, p: Coord, s: numb
     const size = Math.max(6, s * 0.5); // scale with cell size
 
     const [cx, cy] = center(p, s);
-    ctx.strokeStyle = '#1e3a8a'; // dark blue
+    ctx.strokeStyle = palette.start;
     ctx.lineWidth = Math.max(2, s * 0.15);
     ctx.lineCap = 'round';
 
@@ -31,7 +31,7 @@ export function drawGoalMarker(ctx: CanvasRenderingContext2D, p: Coord, s: numbe
     ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = '#ef4444';
+    ctx.strokeStyle = palette.goal;
     ctx.lineWidth = Math.max(2, radius * 0.25);
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
