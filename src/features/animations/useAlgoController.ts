@@ -121,6 +121,11 @@ export function useAlgoController(
             const algo = registry[key];
             if (!algo) return null;
 
+            const currentKey = currentKeyRef.current ?? '';
+            runners.current.get(currentKey)?.runner.pause();
+
+            currentKeyRef.current = key;
+
             const snap = getGridSnapshot();
             if (!snap) {
                 return;
@@ -148,7 +153,6 @@ export function useAlgoController(
             });
 
             runners.current.set(key, { runner: r, buildVersion: snap.gridVersion });
-            currentKeyRef.current = key;
             setStatus('ready');
             return r;
         },
@@ -184,17 +188,10 @@ export function useAlgoController(
     }, [createRunnerFor, gridVersion]);
 
     /** Public API to switch algorithm */
-    const setAlgorithm = useCallback(
-        (key: string) => {
-            if (!registry[key]) return;
-            const currentKey = currentKeyRef.current ?? '';
-            runners.current.get(currentKey)?.runner.pause();
-            setAlgoKey(key);
-            currentKeyRef.current = key;
-            setStatus('ready');
-        },
-        [registry],
-    );
+    const setAlgorithm = useCallback((key: string) => {
+        setAlgoKey(key);
+        currentKeyRef.current = key;
+    }, []);
 
     // Controls operate on current runner -> can be sure the runner is upto date and created
     const play = useCallback(() => {

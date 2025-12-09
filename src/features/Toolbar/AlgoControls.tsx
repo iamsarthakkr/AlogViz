@@ -6,7 +6,7 @@ import { useAlgoController } from '@features/animations';
 import { useSettingsStore } from '@features/store';
 import { availableSpeeds, speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
-import { algorithms } from '@features/algo';
+import { algoLabels, algorithms } from '@features/algo';
 import { Dropdown } from '@/components/Dropdown';
 import { mazes, mazesLabels } from '@features/mazes';
 import { useMazeGenerator } from '@features/animations/useMazeGenerator';
@@ -16,13 +16,11 @@ type Props = {
 };
 
 export const AlgoControls = ({ ctx }: Props) => {
-    const { algoKey, speed, mazeGeneratorKey, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
+    const { algoKey, speed, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
     const algoController = useAlgoController(ctx, algorithms);
     const mazeGenerator = useMazeGenerator(mazes);
-    const algoKeys = Object.keys(algorithms).map((x) => x.toUpperCase());
 
     const onAlgoChange = (k: string) => {
-        k = k.toLocaleLowerCase();
         setAlgoKey(k);
         algoController.setAlgorithm(k);
     };
@@ -45,12 +43,12 @@ export const AlgoControls = ({ ctx }: Props) => {
             <div className="flex flex-1 items-center gap-2">
                 <Dropdown
                     title={algoKey ? algoKey : 'Algorithm'}
-                    options={algoKeys}
+                    options={algoLabels}
                     onSelect={onAlgoChange}
-                    className="w-30 font-semibold"
+                    className="w-50 font-semibold"
                 />
                 <Dropdown
-                    title={mazeGeneratorKey ? mazeGeneratorKey : 'Mazes & Patterns'}
+                    title={'Mazes & Patterns'}
                     options={mazesLabels}
                     onSelect={onGenerateMaze}
                     className="w-50 font-semibold"

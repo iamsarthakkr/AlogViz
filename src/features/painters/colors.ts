@@ -21,25 +21,24 @@ export const lightPalette: GridPalette = {
     gridLine: '#8fade8',
     background: '#ffffff',
 
-    start: '#10b981',
+    start: '#87260e',
     goal: '#ef4444',
 
-    frontier: 'rgba(139, 209, 221, 0.5)', // blue-ish
-    visited: 'rgba(81, 213, 239, 0.7)', // amber-ish
-    pathCell: '#efea51', // green
+    frontier: 'rgba(139, 209, 221, 0.5)',
+    visited: 'rgba(81, 213, 239, 0.7)',
+    pathCell: '#efea51',
 };
 
-// optional dark theme you can swap in later
 export const darkPalette: GridPalette = {
-    cellEmpty: '#0b0e14',
-    cellWall: '#2b2f37',
+    cellEmpty: '#ffffff',
+    cellWall: '#05181c',
     gridLine: '#8fade8',
-    background: '#0b0e14',
+    background: '#ffffff',
 
-    start: '#10b981',
+    start: '#87260e',
     goal: '#ef4444',
 
-    frontier: 'rgba(59,130,246,0.45)',
-    visited: 'rgba(250,204,21,0.45)',
-    pathCell: '#22c55e',
+    frontier: 'rgba(139, 209, 221, 0.5)',
+    visited: 'rgba(81, 213, 239, 0.7)',
+    pathCell: '#efea51',
 };

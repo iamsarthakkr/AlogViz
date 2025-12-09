@@ -1,3 +1,3 @@
-export const ROWS = 25;
-export const COLS = 45;
-export const CELL_SIZE = 22;
+export const ROWS = 35;
+export const COLS = 61;
+export const CELL_SIZE = 20;
