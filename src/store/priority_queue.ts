@@ -1,3 +1,7 @@
+// Authored by - Sarthak Kumar
+//
+// min_priority_queue: binary min-heap keyed on `dist`. Used by dijkstra as the frontier.
+
 export class min_priority_queue {
     private heap: { dist: number; id: number }[] = [];
 

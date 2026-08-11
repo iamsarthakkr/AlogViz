@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// useMazeGenerator: orchestrates maze generation playback.
+// - Unlike useAlgoController, events write directly into useGridStore (walls ARE grid state)
+// - Hides start/goal + locks the grid for the run, restores/re-snaps them on the `done` event
+// - Always autoplays; no pause/step controls are exposed for maze generation
 'use client';
 
 import { useCallback, useRef, useState } from 'react';

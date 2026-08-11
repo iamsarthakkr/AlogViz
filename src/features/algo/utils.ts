@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// algo/utils: shared helpers for pathfinding algorithms and maze generators.
+// - random/randomOdd/randomEven/shuffle: RNG helpers (odd/even used for the maze cell lattice)
+// - neighbors4/second_neighbors4: 4-directional and 2-cell-away neighbor offsets
+
 import { Coord } from '@/types/grid';
 
 export const random = (min: number, max: number) => {

@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// Queue: ring-buffer FIFO queue (power-of-2 capacity, doubles on overflow).
+// Used by bfs/bidirectionalBfs as the frontier structure.
+
 export class Queue<T> {
     private buf: (T | undefined)[];
     private head = 0;

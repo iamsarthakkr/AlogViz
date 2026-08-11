@@ -1,3 +1,7 @@
+// Authored by - Sarthak Kumar
+//
+// speedToEPS: maps a speed preset (slow/medium/fast) to a runner events-per-second rate.
+
 import { SpeedPreset } from '@/types/settings';
 
 export const speedToEPS: Record<SpeedPreset, number> = {

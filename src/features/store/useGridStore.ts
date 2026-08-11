@@ -1,3 +1,11 @@
+// Authored by - Sarthak Kumar
+//
+// useGridStore: single source of truth for the grid itself.
+// - Flat CellKind[] cell array (index = r*cols+c), start/goal markers, dimensions
+// - gridVersion is the manual dirty flag other hooks watch to invalidate cached runs
+// - gridLock disables pointer edits while an algorithm/maze is running
+// - setStart/setGoal snap to the nearest non-wall cell instead of landing on a wall
+
 'use client';
 import { create } from 'zustand';
 import { CellKind, GridState } from '@/types/grid';

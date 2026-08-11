@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// AlgoControls: wires the algorithm/maze dropdowns and playback buttons to the
+// useAlgoController / useMazeGenerator hooks. No visualization logic lives here —
+// it's pure UI + calling the controller's public API (play/pause/step/clear/setSpeed).
 'use client';
 
 import React from 'react';

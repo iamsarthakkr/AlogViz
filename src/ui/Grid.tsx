@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// Grid: top-level page composition for the /grid route. Holds the single gridRef
+// (CanvasGridHandle) that both Toolbar and CanvasGrid share — the only wiring between
+// the toolbar's controls and the canvas.
 'use client';
 
 import React, { useRef } from 'react';

@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// prims: randomized minimum-spanning-tree maze carve over the odd/odd cell lattice.
+// Maintains a `frontiers` list of candidate walls, randomly consumes one at a time.
+
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
 import { neighbors4, random, second_neighbors4, shuffle } from '@features/algo/utils';

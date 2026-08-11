@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// overlayPainter: pure draw functions for the overlay canvas layer (algorithm visualization).
+// - paintAlgoEvent: paints one AlgoEvent (enqueue/visit) as it's yielded by the runner
+// - animateFinalPath: runs its own independent rAF loop to trace the final path cell-by-cell
+// - clearOverlay: wipes the overlay canvas (called before/after each run)
+
 import { AlgoEvent } from '@/types/algo';
 import { Coord } from '@/types/grid';
 import { drawMarkers } from './basePainter';
