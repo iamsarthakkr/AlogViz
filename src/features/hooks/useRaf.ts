@@ -18,6 +18,12 @@ export const useRaf = () => {
             if (callbackRef.current) callbackRef.current();
         });
     }, []);
-    useEffect(() => () => cancelAnimationFrame(rafId.current), []);
+    useEffect(
+        () => () => {
+            cancelAnimationFrame(rafId.current);
+            pendingRef.current = false;
+        },
+        [],
+    );
     return schedule;
 };

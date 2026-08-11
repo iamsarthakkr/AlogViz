@@ -1,6 +1,6 @@
 # Roadmap
 
-Goal: reach a state where adding a new pathfinding algorithm or maze pattern is *only*
+Goal: reach a state where adding a new pathfinding algorithm or maze pattern is _only_
 "write one generator file + register it in an index.ts map" — no touching hooks, painters,
 or types. Then a categorized list of current bugs/issues found while reading the codebase
 end to end.
@@ -21,17 +21,17 @@ end to end.
       the "just add a file" goal is supposed to eliminate.
 - [ ] Same for the `id`/`inb` pair duplicated across `floodFill.ts`, `prims.ts` (mazes).
 - [ ] Give algorithms a declared "requires weighted terrain" capability, or introduce a
-      weighted `CellKind` (see High #3 below) — otherwise Dijkstra-family and future A*/cost
+      weighted `CellKind` (see High #3 below) — otherwise Dijkstra-family and future A\*/cost
       algorithms have nothing to differentiate them from BFS in this codebase.
 - [ ] Define a single `AlgoDefinition`/`MazeDefinition` shape (`{label, run, ...}`) so a new
-      algorithm is *one* export added to *one* array, instead of updating both a `Record` and
+      algorithm is _one_ export added to _one_ array, instead of updating both a `Record` and
       a parallel `string[]` labels array that must stay in sync by convention
       (`features/algo/index.ts`, `features/mazes/index.ts`).
 - [ ] Add a lightweight test harness (none exists today — no `*.test.ts`, no test runner in
       `package.json`) so a new generator can be verified (finds shortest path on a known
       grid, terminates, doesn't yield out-of-bounds coords) without manual UI testing.
 - [ ] Document (in code or ARCHITECTURE.md) the exact generator contract new authors must
-      follow: yield order guarantees, that `path` must be the *last* yield, that coordinates
+      follow: yield order guarantees, that `path` must be the _last_ yield, that coordinates
       must be in-bounds, etc. — currently this is only inferable by reading existing
       algorithms.
 - [ ] Decide the theming story (see High #2) before adding algorithms that want distinct
@@ -95,8 +95,8 @@ end to end.
    the otherwise-consistent `camelCase` convention. Two same-named-but-different `store`
    concepts (`src/store/` = data structures, `src/features/store/` = Zustand) risk confusing
    contributors and IDE auto-imports.
-8. Toolbar's Step vs Pause is a conditional *render swap* (`status === 'running' ? Pause :
-   Step`) while Visualize/Clear-path use `disabled` instead — two different UX patterns for
+8. Toolbar's Step vs Pause is a conditional _render swap_ (`status === 'running' ? Pause :
+Step`) while Visualize/Clear-path use `disabled` instead — two different UX patterns for
    "unavailable action" in the same control cluster (`AlgoControls.tsx`).
 9. `useAlgoController`'s `runners` cache is unbounded and never evicts old algorithm-key
    entries — for this app's fixed 4-algorithm registry it's harmless, but the pattern doesn't
@@ -116,7 +116,7 @@ end to end.
    scanning stack traces or dev-tools component names.
 4. Empty `try { ... } catch { /* no-op */ }` blocks around `setPointerCapture`/
    `releasePointerCapture` in `CanvasGrid.tsx` are fine defensively, but silently swallow any
-   *unexpected* error too — consider at least a dev-mode `console.debug` if this ever needs
+   _unexpected_ error too — consider at least a dev-mode `console.debug` if this ever needs
    debugging.
 5. `basePainter.ts`'s cell/marker draw functions hardcode a `0.25` overdraw offset and
    `#000000` fill (goal marker's inner dot) inline as magic numbers/colors rather than
