@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// runner: generic rAF-driven playback engine for any generator (algorithms and mazes alike).
+// - createRunner: wraps a generator, pulling `speed` events/sec per animation frame
+// - play/pause/step/skipToEnd/setSpeed all operate on the same underlying generator state,
+//   which is what makes those controls "free" — no algorithm-specific code needed
+
 import { AlgoStatus } from '@/types/algo';
 
 export type RunnerApi<TYield> = {

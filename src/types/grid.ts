@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// grid types: core Grid shape + GridState (Grid + useGridStore's actions).
+// Coords are flattened to r*cols+c everywhere — there's no 2D array anywhere in the app.
+
 export type Coord = { r: number; c: number };
 
 export enum CellKind {

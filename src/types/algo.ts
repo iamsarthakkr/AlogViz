@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// algo types: the pathfinding generator contract. A PathFinder yields enqueue/visit
+// events as it works, then exactly one terminal `path` event with the reconstructed nodes.
+
 import { Coord, GridSnapShot } from './grid';
 
 export enum AlgoStatus {

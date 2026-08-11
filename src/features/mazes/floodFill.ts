@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// floodFill: randomized iterative DFS backtracker ("growing tree" maze) over the
+// odd/odd cell lattice — real cells sit at odd coordinates, walls at even coordinates.
+
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
 import { random, second_neighbors4, shuffle } from '@features/algo/utils';

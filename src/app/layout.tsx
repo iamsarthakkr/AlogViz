@@ -1,3 +1,7 @@
+// Authored by - Sarthak Kumar
+//
+// RootLayout: app-wide HTML shell + font loading (Montserrat, Geist Mono) + page metadata.
+
 import React from 'react';
 import type { Metadata } from 'next';
 import { Geist_Mono, Montserrat } from 'next/font/google';

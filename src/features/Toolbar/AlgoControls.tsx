@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// AlgoControls: wires the algorithm/maze dropdowns and playback buttons to the
+// useAlgoController / useMazeGenerator hooks. No visualization logic lives here —
+// it's pure UI + calling the controller's public API (play/pause/step/clear/setSpeed).
 'use client';
 
 import React from 'react';
@@ -57,7 +62,7 @@ export const AlgoControls = ({ ctx }: Props) => {
 
             <div className="flex  items-center justify-center gap-2">
                 <button
-                    className="px-3 py-2 w-30 rounded-md font-semibold bg-indigo-600 text-white text-sm hover:brightness-95"
+                    className="px-3 py-2 w-30 rounded-md font-semibold bg-indigo-600 disabled:bg-indigo-900 disabled:cursor-not-allowed text-white text-sm hover:brightness-95"
                     onClick={algoController.play}
                     title="Visualize"
                     disabled={algoController.status === 'running'}

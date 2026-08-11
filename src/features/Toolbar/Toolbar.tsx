@@ -1,3 +1,7 @@
+// Authored by - Sarthak Kumar
+//
+// Toolbar: top-level chrome bar — title + AlgoControls. Receives the CanvasGrid ref
+// from ui/Grid.tsx and forwards it down so controls can act on the canvas imperatively.
 'use client';
 
 import React from 'react';
