@@ -1,21 +1,37 @@
-## Getting Started
+# AlgoViz
 
-This project is a starter template for next application using Typescript, Tailwind CSS and Eslint setup.
+A pathfinding-algorithm visualizer. Paint walls on a grid, place start/goal markers, then
+watch a pathfinding algorithm (or generate a maze) animate step by step on canvas.
 
-## Create a new repo using gh cli
+- **Algorithms**: Breadth-first search, Depth-first search, Bidirectional BFS, Dijkstra's
+- **Maze / pattern generators**: Recursive Division (+ vertical/horizontal skew), Prim's,
+  Randomized Depth-First Search, Random Walls
+- **Controls**: Visualize, Pause/Step, Clear path, speed presets (slow/medium/fast)
 
-```bash
-gh repo create <app-name> --private --template Studio-SK/next-template
-```
+See [CLAUDE.md](./CLAUDE.md) for project context and conventions,
+[ARCHITECTURE.md](./ARCHITECTURE.md) for how state, rendering, and the algorithm/maze
+generator pipeline work, [FEATURES.md](./FEATURES.md) for a feature-by-feature breakdown, and
+[ROADMAP.md](./ROADMAP.md) for planned work and known issues.
 
-### Install dependencies
+## Stack
+
+Next.js 15 (App Router) · React 19 · TypeScript · Zustand 5 · Tailwind CSS 4 + daisyUI
+
+## Getting started
 
 ```bash
 npm install
+npm run dev
 ```
 
-### Run the development server
+Open [http://localhost:3000/grid](http://localhost:3000/grid) — the visualizer lives at
+`/grid` (the root route `/` is currently a placeholder, see ROADMAP.md).
+
+## Scripts
 
 ```bash
-npm run dev
+npm run dev      # start the Turbopack dev server
+npm run build    # production build
+npm run start    # run the production build
+npm run lint     # eslint
 ```
