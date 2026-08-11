@@ -1,5 +1,5 @@
-import React from 'react';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-    return <div className="text-xl text-center">Hello world</div>;
+    redirect('/grid');
 }
