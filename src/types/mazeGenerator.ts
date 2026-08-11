@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// mazeGenerator types: the maze generator contract. A MazeGenerator(rows, cols) yields
+// wall/carve events (plus fill-wall/clear-wall resets) and a terminal `done` event.
+
 import { Coord } from './grid';
 
 export type CarveEvent = { type: 'carve'; at: Coord };

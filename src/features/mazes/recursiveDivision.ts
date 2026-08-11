@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// recursiveDivision: a *factory* (vertical_prob) -> MazeGenerator. Recursively bisects
+// the interior with single-gap walls (vertical or horizontal, weighted by vertical_prob),
+// using explicit stacks instead of recursion. mazes/index.ts calls this 3x with different
+// skew probabilities to register three distinct dropdown entries from one implementation.
+
 import { MazeGenerator } from '@/types/mazeGenerator';
 import { randomEven, randomOdd } from '@features/algo/utils';
 

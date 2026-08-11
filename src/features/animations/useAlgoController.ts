@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// useAlgoController: orchestrates pathfinding algorithm playback for the toolbar.
+// - Caches one runner per algorithm key (Map), keyed with the grid version it was built from
+// - Invalidates/rebuilds a runner when the grid changes; instantly re-solves if it had finished
+// - Wires runner events -> overlay canvas paints (paintAlgoEvent) and the final path animation
+// - Exposes status/pathLen/visitedApprox + play/pause/step/skipToEnd/clear controls
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';

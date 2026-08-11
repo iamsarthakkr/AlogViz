@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// colors: centralized color palette for the grid canvas (base scene + overlay events).
+// NOTE: darkPalette is currently identical to lightPalette, and no theme-switch wires it up.
+
 export type GridPalette = {
     // base scene
     cellEmpty: string;

@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// bidirectionalBfs: two BFS frontiers grown from start and goal simultaneously,
+// alternating one pop per side per iteration, stopping the moment they meet.
+// Path is stitched from parent[0] (start-side, reversed) + parent[1] (goal-side).
+
 import { Queue } from '@/store/queue';
 import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';

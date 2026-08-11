@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// Dropdown: generic daisyUI-styled select menu (title + option list -> onSelect).
+// Feature-agnostic — used for algorithm, maze, and speed selection in the toolbar.
+
 import { Callback1 } from '@/types/common';
 import React, { useCallback } from 'react';
 

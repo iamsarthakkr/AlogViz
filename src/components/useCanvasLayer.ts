@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// useCanvasLayer: sizes a single <canvas> for devicePixelRatio and hands back its 2D ctx.
+// - Sets CSS size (logical px) vs canvas.width/height (physical px) separately
+// - Applies the DPR transform once so callers draw in logical coordinates
 'use client';
 import { useEffect, useRef } from 'react';
 

@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// random: independent per-cell coin flip for walls. No connectivity guarantee
+// (unlike the other generators), just a quick scattered-wall pattern.
+
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
 import { shuffle } from '@features/algo/utils';
