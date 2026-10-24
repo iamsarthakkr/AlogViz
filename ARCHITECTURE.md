@@ -7,7 +7,7 @@ feature-level behavior.
 ## 1. Page composition
 
 ```
-app/grid/page.tsx  ('use client')
+main.tsx → App.tsx
   └─ ui/Grid.tsx
        ├─ Toolbar (ctx = ref to CanvasGrid)
        │    └─ AlgoControls (ctx)

@@ -1,13 +1,12 @@
 // Authored by - Sarthak Kumar
 //
-// Grid: top-level page composition for the /grid route. Holds the single gridRef
+// Grid: top-level page composition (the whole app is this one view). Holds the single gridRef
 // (CanvasGridHandle) that both Toolbar and CanvasGrid share — the only wiring between
 // the toolbar's controls and the canvas.
-'use client';
 
-import React, { useRef } from 'react';
-import { CanvasGrid, CanvasGridHandle } from '@features/CanvasGrid';
-import { Toolbar } from '@features/Toolbar';
+import { useRef } from 'react';
+import { CanvasGrid, CanvasGridHandle } from '@/features/CanvasGrid';
+import { Toolbar } from '@/features/Toolbar';
 
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);

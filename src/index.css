@@ -11,8 +11,8 @@
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-montrerrat);
-    --font-mono: var(--font-geist-mono);
+    --font-sans: 'Montserrat Variable', sans-serif;
+    --font-mono: 'Geist Mono Variable', monospace;
     --color-primary: #014f56;
     --color-secondary: #91f7ed;
 }
@@ -35,5 +35,5 @@ body {
 body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans) sans-serif;
+    font-family: var(--font-sans);
 }

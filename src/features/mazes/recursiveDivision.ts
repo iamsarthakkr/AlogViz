@@ -6,7 +6,7 @@
 // skew probabilities to register three distinct dropdown entries from one implementation.
 
 import { MazeGenerator } from '@/types/mazeGenerator';
-import { randomEven, randomOdd } from '@features/algo/utils';
+import { randomEven, randomOdd } from '@/features/algo/utils';
 
 type Range = {
     from: number;

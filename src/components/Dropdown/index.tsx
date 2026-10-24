@@ -4,7 +4,7 @@
 // Feature-agnostic — used for algorithm, maze, and speed selection in the toolbar.
 
 import { Callback1 } from '@/types/common';
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 
 type Props = {
     title: string;

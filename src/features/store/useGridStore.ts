@@ -6,7 +6,6 @@
 // - gridLock disables pointer edits while an algorithm/maze is running
 // - setStart/setGoal snap to the nearest non-wall cell instead of landing on a wall
 
-'use client';
 import { create } from 'zustand';
 import { CellKind, GridState } from '@/types/grid';
 import { initGrid, nearestEmptyCell } from '@/utils/grid';

@@ -5,15 +5,14 @@
 // - Redraws the base canvas via drawBaseScene whenever grid state changes (debounced via useRaf)
 // - Exposes CanvasGridHandle (ctx getters, clearOverlay, redrawBase) for the toolbar/animation hooks
 // - Respects gridLock: pointer editing is a no-op while an algorithm/maze run owns the grid
-'use client';
 
 import React, { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Brush, CellKind, DragMode } from '@/types/grid';
-import { useGridStore } from '@features/store';
+import { useGridStore } from '@/features/store';
 import { CanvasStage, CanvasStageHandle } from '@/components/CanvasStage';
-import { clearOverlay, drawBaseScene } from '@features/painters';
-import { useRaf } from '@features/hooks/useRaf';
+import { clearOverlay, drawBaseScene } from '@/features/painters';
+import { useRaf } from '@/features/hooks/useRaf';
 
 /** The API CanvasGrid will expose to parents */
 export type CanvasGridHandle = {

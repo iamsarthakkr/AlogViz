@@ -15,7 +15,7 @@ generator pipeline work, [FEATURES.md](./FEATURES.md) for a feature-by-feature b
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Zustand 5 · Tailwind CSS 4 + daisyUI
+Vite 8 · React 19 · TypeScript · Zustand 5 · Tailwind CSS 4 + daisyUI
 
 ## Getting started
 
@@ -24,14 +24,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000/grid](http://localhost:3000/grid) — the visualizer lives at
-`/grid` (the root route `/` is currently a placeholder, see ROADMAP.md).
+Open [http://localhost:5173](http://localhost:5173).
 
 ## Scripts
 
 ```bash
-npm run dev      # start the Turbopack dev server
-npm run build    # production build
-npm run start    # run the production build
+npm run dev      # start the Vite dev server
+npm run build    # type-check (tsc -b) + static production build into dist/
+npm run preview  # serve the production build locally
 npm run lint     # eslint
 ```

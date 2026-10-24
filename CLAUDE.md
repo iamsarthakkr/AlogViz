@@ -13,18 +13,18 @@ maze generator (Recursive Division, Prim's, randomized DFS flood-fill, random wa
 watches the algorithm explore the grid cell-by-cell in an animated overlay, ending with the
 traced shortest/found path.
 
-It's a single-page canvas app: one real route (`/grid`), one Zustand store for grid data,
+It's a static single-page canvas app (Vite, no router — one view at `/`), one Zustand store for grid data,
 one for UI/settings, and a generator-based "algorithm as a sequence of yielded events"
 pattern that both pathfinding algorithms and maze generators share.
 
 ## Tech stack
 
-- **Next.js 15** (App Router, Turbopack dev server), **React 19**
+- **Vite 8** (static SPA build, `@vitejs/plugin-react-swc`), **React 19**
 - **TypeScript**, strict mode
 - **Zustand 5** for state (two stores, no middleware/persistence)
 - **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes) for chrome (toolbar, dropdown, settings modal); the grid itself is drawn on `<canvas>`, not DOM
-- **Prettier** + ESLint (flat config, `eslint-config-next`)
-- Path aliases (`tsconfig.json`): `@/*` → `src/*`, `@features/*` → `src/features/*`, `@ui/*` → `src/ui/*`
+- **Prettier** + ESLint (flat config: `typescript-eslint` + `react-hooks` + `react-refresh`)
+- One path alias (`vite.config.ts` + `tsconfig.app.json`): `@/*` → `src/*` — import as `@/features/...`, `@/ui/...`
 
 No test framework is configured. No backend/API/database — everything is client-side, in-memory, and non-persistent (a refresh resets the grid).
 
@@ -32,21 +32,23 @@ No test framework is configured. No backend/API/database — everything is clien
 
 ```bash
 npm install
-npm run dev     # Turbopack dev server
-npm run build
-npm run start
+npm run dev       # Vite dev server (http://localhost:5173)
+npm run build     # tsc -b type-check, then vite build → dist/
+npm run preview   # serve dist/ locally
 npm run lint
 ```
 
-The visualizer lives at `/grid`. The root route `/` is currently an unmodified
-`create-next-app` placeholder ("Hello world") and does not link to `/grid` — see
-[ROADMAP.md](./ROADMAP.md) for this and other known gaps.
+`npm run build` emits a fully static bundle in `dist/` that any static file host can serve.
+See [ROADMAP.md](./ROADMAP.md) for known gaps.
 
 ## Directory map
 
 ```
+index.html             HTML shell: title/meta, mounts src/main.tsx
 src/
-  app/                 Next.js App Router pages (layout, /, /grid)
+  main.tsx             Entry: fonts, index.css, renders <App /> in StrictMode
+  App.tsx              Root component (just renders ui/Grid)
+  index.css            Tailwind + daisyUI setup, theme tokens
   ui/Grid.tsx           Top-level page composition: Toolbar + CanvasGrid
   components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
   features/
@@ -58,7 +60,6 @@ src/
     animations/          The generator "runner" (rAF playback engine) + hooks that drive algo/maze runs
     Toolbar/             Algorithm/maze dropdowns, play/pause/step/clear, speed control
     hooks/useRaf.ts      Generic "coalesce into one rAF callback" hook
-    Canvas/              NOT USED — dead duplicate of components/CanvasStage, see ROADMAP.md
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
   utils/                 Small pure helpers (grid init/snap, clamp, speed presets, constants)
@@ -96,14 +97,4 @@ practice (some duplication and gaps remain).
 - `gridLock` (in `useGridStore`) is the mechanism that disables pointer editing while an
   algorithm or maze generator is running.
 - Component/hook pairs follow a `Thing.tsx` + `useThing.ts` split with a barrel `index.ts`
-  re-exporting the public surface (see `CanvasGrid/`, `Canvas/`).
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+  re-exporting the public surface (see `CanvasGrid/`).

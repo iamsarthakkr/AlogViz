@@ -5,12 +5,11 @@
 // - Invalidates/rebuilds a runner when the grid changes; instantly re-solves if it had finished
 // - Wires runner events -> overlay canvas paints (paintAlgoEvent) and the final path animation
 // - Exposes status/pathLen/visitedApprox + play/pause/step/skipToEnd/clear controls
-'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Callback, Callback1 } from '@/types/common';
 import { AlgoStatus, type AlgoEvent, type PathFinder } from '@/types/algo';
-import type { CanvasGridHandle } from '@features/CanvasGrid';
+import type { CanvasGridHandle } from '@/features/CanvasGrid';
 import { useGridStore } from '@/features/store';
 import { paintAlgoEvent, animateFinalPath, drawMarkers } from '@/features/painters';
 

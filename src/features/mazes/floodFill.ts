@@ -5,7 +5,7 @@
 
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
-import { random, second_neighbors4, shuffle } from '@features/algo/utils';
+import { random, second_neighbors4, shuffle } from '@/features/algo/utils';
 
 // depth first backtracking
 export const floodFill: MazeGenerator = function*(rows, cols) {

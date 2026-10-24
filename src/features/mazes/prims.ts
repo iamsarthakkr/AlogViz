@@ -5,7 +5,7 @@
 
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
-import { neighbors4, random, second_neighbors4, shuffle } from '@features/algo/utils';
+import { neighbors4, random, second_neighbors4, shuffle } from '@/features/algo/utils';
 
 // prim's spanning tree (randomized)
 export const prims: MazeGenerator = function* (rows, cols) {

@@ -3,18 +3,17 @@
 // AlgoControls: wires the algorithm/maze dropdowns and playback buttons to the
 // useAlgoController / useMazeGenerator hooks. No visualization logic lives here —
 // it's pure UI + calling the controller's public API (play/pause/step/clear/setSpeed).
-'use client';
 
 import React from 'react';
-import { CanvasGridHandle } from '@features/CanvasGrid';
-import { useAlgoController } from '@features/animations';
-import { useSettingsStore } from '@features/store';
+import { CanvasGridHandle } from '@/features/CanvasGrid';
+import { useAlgoController } from '@/features/animations';
+import { useSettingsStore } from '@/features/store';
 import { availableSpeeds, speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
-import { algoLabels, algorithms } from '@features/algo';
+import { algoLabels, algorithms } from '@/features/algo';
 import { Dropdown } from '@/components/Dropdown';
-import { mazes, mazesLabels } from '@features/mazes';
-import { useMazeGenerator } from '@features/animations/useMazeGenerator';
+import { mazes, mazesLabels } from '@/features/mazes';
+import { useMazeGenerator } from '@/features/animations/useMazeGenerator';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;

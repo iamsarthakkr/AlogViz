@@ -5,7 +5,7 @@
 // - base layer: cells/walls/markers, redrawn on grid state changes
 // - overlay layer (pointer-events: none): frontier/visited/path painted by the runner
 // - exposes both 2D contexts via useImperativeHandle for imperative drawing
-'use client';
+
 import React, { forwardRef, useImperativeHandle } from 'react';
 import { useCanvasLayer } from './useCanvasLayer';
 

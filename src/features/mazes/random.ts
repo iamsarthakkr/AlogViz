@@ -5,7 +5,7 @@
 
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
-import { shuffle } from '@features/algo/utils';
+import { shuffle } from '@/features/algo/utils';
 
 const wall_prob = 0.35;
 export const randomGenerator: MazeGenerator = function*(rows, cols) {
