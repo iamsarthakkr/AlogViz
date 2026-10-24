@@ -59,11 +59,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      # Built once and loaded into the local daemon, so the image that's smoke-tested below
+      # is byte-for-byte the one that gets pushed (and later pulled by the VPS)
+      - name: Build image
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: true
+          load: true
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
             ${{ steps.meta.outputs.image }}:latest
@@ -73,6 +75,17 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=algo-viz
           cache-to: type=gha,mode=max,scope=algo-viz
+
+      - name: Smoke test image
+        run: bash scripts/smoke-test.sh "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+
+      - name: Push image
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          docker push "${IMAGE}:${VERSION}"
+          docker push "${IMAGE}:latest"
 
       # Created last on purpose: a release should only exist once its image is pullable
       - name: Create GitHub release

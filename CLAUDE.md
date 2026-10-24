@@ -42,7 +42,7 @@ npm run test:coverage   # single run + coverage report (fails under the threshol
 
 `npm run build` emits a fully static bundle in `dist/` that any static file host can serve.
 Deployment is Docker: `Dockerfile` (build → unprivileged nginx on 8080), `nginx.conf` (CSP,
-caching, `/healthz`), `compose.yaml` (loopback-only port for Caddy). CI in `.github/workflows/`
+caching, `/healthz`), `compose.yaml` (runs the released GHCR image by `APP_VERSION` — nothing is built on the VPS; loopback-only port for Caddy). CI in `.github/workflows/`
 runs lint, `test:coverage`, build and `scripts/smoke-test.sh` against the built image.
 If you add an external origin (CDN, analytics, fonts), update the CSP in `nginx.conf` too. Details in [DEPLOY.md](./DEPLOY.md).
 
