@@ -18,10 +18,7 @@ describe('bidirectionalBfs', () => {
         expect(bi).toBeLessThan(uni);
     });
 
-    // BUG: with start === goal the two searches "meet" at a neighbour and the stitched path
-    // becomes [start, neighbour, start]. The grid store never lets start and goal overlap, so
-    // this can't happen in the UI today — but it would with any future API that allows it.
-    it.fails('returns just the start cell when start is the goal', () => {
+    it('returns just the start cell when start is the goal', () => {
         const grid = emptyGrid(3, 3, { r: 1, c: 1 }, { r: 1, c: 1 });
         expect(runToPath(bidirectionalBfs(grid)).path.nodes).toEqual([{ r: 1, c: 1 }]);
     });

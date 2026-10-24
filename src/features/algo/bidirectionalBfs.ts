@@ -26,6 +26,12 @@ export const bidirectionalBfs: PathFinder = function*(grid) {
     seen[0][id(start)] = 1;
     seen[1][id(goal)] = 1;
 
+    if (start.r === goal.r && start.c === goal.c) { // early return for start == end since the algo checks neighbors and not the actual start/end
+        yield { type: 'enqueue', at: start };
+        yield { type: 'path', nodes: [start], visited: 0 };
+        return;
+    }
+
     yield { type: 'enqueue', at: start };
     yield { type: 'enqueue', at: goal };
 
