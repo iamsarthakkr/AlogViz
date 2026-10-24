@@ -16,6 +16,9 @@ Browser ──► https://<domain> ──► Caddy (shared, on the VPS host) ─
   [`compose.yaml`](compose.yaml), published on `127.0.0.1` only — so it's reachable through Caddy and nowhere else.
   (Publishing on `0.0.0.0` would expose it publicly, because Docker's iptables rules bypass ufw.)
 - `HOST_PORT` defaults to `3002` so it doesn't collide with the portfolio on the same VPS.
+- **Nothing is built on the VPS.** Images are built and smoke-tested by GitHub on each release, published to GHCR
+  (public) as `ghcr.io/iamsarthakkr/algo-viz:<version>`, and the VPS only pulls them. It needs just `compose.yaml`
+  and `.env` — no repo checkout, Node or build tooling.
 
 ## Container
 
@@ -51,9 +54,13 @@ SMOKE_PORT=18080 scripts/smoke-test.sh algo-viz:local   # if 8080 is taken
 
 ## Releasing a version
 
-[`.github/workflows/release.yml`](.github/workflows/release.yml) runs when a version tag is pushed. It re-runs CI
-on that commit, then pushes `ghcr.io/iamsarthakkr/algo-viz:<version>` (and `:latest`) and creates a GitHub release.
-The tag and `package.json` must agree, otherwise the release fails.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) runs when a version tag is pushed:
+
+1. re-runs the full CI workflow on that commit;
+2. checks the tag matches `package.json` (otherwise the release is ambiguous and fails);
+3. builds the image **once**, runs `scripts/smoke-test.sh` against it, and only then pushes that exact image as
+   `ghcr.io/iamsarthakkr/algo-viz:<version>` and `:latest` — so what the VPS pulls is byte-for-byte what was tested;
+4. creates the GitHub release last, so a release only exists once its image is pullable.
 
 ```bash
 npm version patch --no-git-tag-version   # bump package.json
@@ -64,31 +71,56 @@ git push origin main v1.0.1
 
 ## Deploying
 
-On the VPS, from a checkout of `main`:
+### One-time setup
+
+1. After the first release, make the GHCR package **public** (GitHub → your profile → Packages → `algo-viz` →
+   Package settings → Change visibility). New packages are private by default, and the VPS would otherwise need a
+   `docker login` with a token.
+2. On the VPS, create the app directory with the two files it needs:
+
+   ```bash
+   mkdir -p /srv/apps/algo-viz && cd /srv/apps/algo-viz
+   curl -fsSLO https://raw.githubusercontent.com/iamsarthakkr/AlogViz/main/compose.yaml
+   curl -fsSL -o .env https://raw.githubusercontent.com/iamsarthakkr/AlogViz/main/.env.example
+   # edit .env: APP_VERSION (the release to run) and HOST_PORT
+   ```
+
+3. Add the site to the global Caddyfile and reload Caddy:
+
+   ```caddyfile
+   algoviz.example.com {
+       reverse_proxy 127.0.0.1:3002
+   }
+   ```
+
+### Deploying a version
 
 ```bash
-cp .env.example .env         # first time only: set HOST_PORT
-git pull
-docker compose up -d --build
+cd /srv/apps/algo-viz
+sed -i 's/^APP_VERSION=.*/APP_VERSION=1.0.1/' .env
+docker compose pull
+docker compose up -d
+docker compose ps   # wait for "healthy" (the healthcheck polls /healthz every 30s)
 ```
 
-`compose.yaml` builds the image from the checkout; the GHCR images from releases aren't used by it yet. The
-compose healthcheck polls `/healthz` every 30 seconds — `docker compose ps` shows the container as `healthy` once
-it's serving.
-
-Caddy proxies the domain to the container:
-
-```caddyfile
-algoviz.example.com {
-    reverse_proxy 127.0.0.1:3002
-}
-```
+`compose.yaml` refuses to start without `APP_VERSION`, so the VPS never silently runs `:latest`. If a release
+changes `compose.yaml` itself, re-download it from that tag
+(`https://raw.githubusercontent.com/iamsarthakkr/AlogViz/v1.0.1/compose.yaml`) before running compose.
 
 ### Rolling back
 
-Check out the previous release tag and rebuild:
+Same as deploying, with the previous version — the old image is still on GHCR, so nothing is rebuilt:
 
 ```bash
-git checkout v1.0.0
-docker compose up -d --build
+sed -i 's/^APP_VERSION=.*/APP_VERSION=1.0.0/' .env
+docker compose pull && docker compose up -d
+```
+
+### Image cleanup
+
+Each deploy leaves the previous image on disk (handy for an instant rollback). Remove old ones occasionally:
+
+```bash
+docker image ls ghcr.io/iamsarthakkr/algo-viz
+docker image prune   # removes dangling images only
 ```

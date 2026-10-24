@@ -1,8 +1,8 @@
 services:
     algo-viz:
-        build:
-            context: .
-            dockerfile: Dockerfile
+        # Runs the image published by release.yml (CI-tested, smoke-tested) — nothing is built on the VPS.
+        # Deploying or rolling back is just changing APP_VERSION in .env and re-running compose.
+        image: ghcr.io/iamsarthakkr/algo-viz:${APP_VERSION:?set APP_VERSION in .env, e.g. 1.0.0}
         container_name: algo-viz
         # Bound to loopback only: Caddy on the host proxies to it. Publishing on 0.0.0.0 would
         # expose the port publicly, because Docker's iptables rules bypass ufw.
