@@ -25,7 +25,7 @@ export const randomEven = (min: number, max: number): number => {
 
 export const shuffle = (a: Coord[]) => {
     for (let i = a.length - 1; i > 0; --i) {
-        const j = random(0, i - 1);
+        const j = random(0, i);
         [a[i], a[j]] = [a[j], a[i]];
     }
 };

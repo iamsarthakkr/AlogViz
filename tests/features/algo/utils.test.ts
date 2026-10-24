@@ -46,10 +46,7 @@ describe('shuffle', () => {
         expect(new Set(copy)).toEqual(new Set(items));
     });
 
-    // BUG: shuffle draws j from [0, i-1] (Sattolo's algorithm) instead of [0, i] (Fisher–Yates),
-    // so it can only produce cyclic permutations — an element never stays in place.
-    // Mazes still work, but they're less random than intended. See ROADMAP.md (Low).
-    it.fails('can leave an element in its original position (unbiased Fisher–Yates)', () => {
+    it('can leave an element in its original position (unbiased Fisher–Yates)', () => {
         seedRandom(4);
         let sawFixedPoint = false;
         for (let i = 0; i < 200 && !sawFixedPoint; i++) {
