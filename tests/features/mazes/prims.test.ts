@@ -14,7 +14,7 @@ describe('prims', () => {
     });
 
     it('carves a fully connected perfect maze over the lattice', () => {
-        for (let seed = 1; seed < 25; seed++) {
+        for (let seed = 1; seed <= 25; seed++) {
             seedRandom(seed);
             const cells = applyMazeEvents(ROWS, COLS, collect(prims(ROWS, COLS)));
             const lattice = ((ROWS - 1) / 2) * ((COLS - 1) / 2);

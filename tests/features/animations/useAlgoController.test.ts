@@ -186,12 +186,17 @@ describe('useAlgoController', () => {
         expect(overlay.fills.length).toBe(fillsBefore);
     });
 
-    // BUG: Options documents `animatePath` as "default true (if false, path is drawn instantly)",
-    // but createRunnerFor passes it straight through as `instant`, so the meaning is inverted.
-    // Nothing passes the option today, so the default (animated) is unaffected. See ROADMAP.md.
-    it.fails('animatePath: false draws the path instantly', () => {
+    it('animatePath: false draws the path instantly', () => {
         const { result } = render({ animatePath: false });
         act(() => result.current.skipToEnd());
+        expect(pathFills()).toHaveLength(5);
+    });
+
+    it('animates the path by default: nothing drawn until frames run', () => {
+        const { result } = render();
+        act(() => result.current.skipToEnd());
+        expect(pathFills()).toHaveLength(0);
+        flush();
         expect(pathFills()).toHaveLength(5);
     });
 });

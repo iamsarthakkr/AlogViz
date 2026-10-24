@@ -124,7 +124,7 @@ export function useAlgoController(
     );
 
     const createRunnerFor = useCallback(
-        (key: string, instant: boolean = opts.animatePath ?? false) => {
+        (key: string, instant: boolean = opts.animatePath === false) => {
             const algo = registry[key];
             if (!algo) return null;
 
