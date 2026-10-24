@@ -1,7 +1,10 @@
-'use client';
+// Authored by - Sarthak Kumar
+//
+// Settings: grid dimensions/cell-size editor modal (rows/cols/cellSize drafts -> apply).
+// NOTE: not currently mounted anywhere — grid size is fixed at
+// utils/constants.ts defaults until this is wired into Toolbar.
 
-import React from 'react';
-import { useGridStore, useSettingsStore } from '@features/store';
+import { useGridStore, useSettingsStore } from '@/features/store';
 
 // type Props = {
 //     algorithms: string[];

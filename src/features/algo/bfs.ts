@@ -1,10 +1,21 @@
+// Authored by - Sarthak Kumar
+//
+// bfs: breadth-first search. Guarantees shortest path on an unweighted grid.
+// Generator yields {enqueue|visit} per step, terminal {path} once goal is reached/exhausted.
+
 import { Queue } from '@/store/queue';
 import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
 import { equal, neighbors4 } from './utils';
 
-export const bfs: PathFinder = function*(grid) {
+export const bfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
+
+    if (equal(start, goal)) {
+        yield { type: 'enqueue', at: start };
+        yield { type: 'path', nodes: [start], visited: 0 };
+        return;
+    }
 
     const id = (s: Coord) => s.r * cols + s.c;
     const inb = (s: Coord) => s.r >= 0 && s.r < rows && s.c >= 0 && s.c < cols;

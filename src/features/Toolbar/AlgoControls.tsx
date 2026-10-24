@@ -1,15 +1,19 @@
-'use client';
+// Authored by - Sarthak Kumar
+//
+// AlgoControls: wires the algorithm/maze dropdowns and playback buttons to the
+// useAlgoController / useMazeGenerator hooks. No visualization logic lives here —
+// it's pure UI + calling the controller's public API (play/pause/step/clear/setSpeed).
 
 import React from 'react';
-import { CanvasGridHandle } from '@features/CanvasGrid';
-import { useAlgoController } from '@features/animations';
-import { useSettingsStore } from '@features/store';
+import { CanvasGridHandle } from '@/features/CanvasGrid';
+import { useAlgoController } from '@/features/animations';
+import { useSettingsStore } from '@/features/store';
 import { availableSpeeds, speedToEPS } from '@/utils/settings';
 import { SpeedPreset } from '@/types/settings';
-import { algoLabels, algorithms } from '@features/algo';
+import { algoLabels, algorithms } from '@/features/algo';
 import { Dropdown } from '@/components/Dropdown';
-import { mazes, mazesLabels } from '@features/mazes';
-import { useMazeGenerator } from '@features/animations/useMazeGenerator';
+import { mazes, mazesLabels } from '@/features/mazes';
+import { useMazeGenerator } from '@/features/animations/useMazeGenerator';
 
 type Props = {
     ctx: React.RefObject<CanvasGridHandle | null>;
@@ -57,7 +61,7 @@ export const AlgoControls = ({ ctx }: Props) => {
 
             <div className="flex  items-center justify-center gap-2">
                 <button
-                    className="px-3 py-2 w-30 rounded-md font-semibold bg-indigo-600 text-white text-sm hover:brightness-95"
+                    className="px-3 py-2 w-30 rounded-md font-semibold bg-indigo-600 disabled:bg-indigo-900 disabled:cursor-not-allowed text-white text-sm hover:brightness-95"
                     onClick={algoController.play}
                     title="Visualize"
                     disabled={algoController.status === 'running'}

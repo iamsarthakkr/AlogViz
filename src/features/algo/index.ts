@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// algo/index: registry of pathfinding algorithms.
+// - `algorithms`: label -> PathFinder generator function
+// - `algoLabels`: display order for the algorithm dropdown (must stay in sync with `algorithms`)
+
 import { PathFinder } from '@/types/algo';
 import { bfs } from './bfs';
 import { dfs } from './dfs';

@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// grid utils: initGrid builds the default grid; nearestEmptyCell is a small BFS used
+// by useGridStore.setStart/setGoal to snap a dragged marker off of a wall cell.
+
 import { CellKind, Coord, Grid } from '@/types/grid';
 import { CELL_SIZE, COLS, ROWS } from './constants';
 

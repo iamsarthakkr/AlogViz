@@ -1,0 +1,18 @@
+services:
+    algo-viz:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: algo-viz
+        # Bound to loopback only: Caddy on the host proxies to it. Publishing on 0.0.0.0 would
+        # expose the port publicly, because Docker's iptables rules bypass ufw.
+        # Default differs from the portfolio's port so both can run on the same VPS.
+        ports:
+            - '127.0.0.1:${HOST_PORT:-3002}:8080'
+        restart: unless-stopped
+        healthcheck:
+            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:8080/healthz']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 5s

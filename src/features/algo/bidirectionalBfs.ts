@@ -1,10 +1,23 @@
+// Authored by - Sarthak Kumar
+//
+// bidirectionalBfs: two BFS frontiers grown from start and goal simultaneously,
+// alternating one pop per side per iteration, stopping the moment they meet.
+// Path is stitched from parent[0] (start-side, reversed) + parent[1] (goal-side).
+
 import { Queue } from '@/store/queue';
 import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
 import { neighbors4 } from './utils';
 
-export const bidirectionalBfs: PathFinder = function*(grid) {
+export const bidirectionalBfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
+
+    // early return for start == end since the algo checks neighbors and not the actual start/end
+    if (start.r === goal.r && start.c === goal.c) {
+        yield { type: 'enqueue', at: start };
+        yield { type: 'path', nodes: [start], visited: 0 };
+        return;
+    }
 
     const id = (s: Coord) => s.r * cols + s.c;
     const inb = (s: Coord) => s.r >= 0 && s.r < rows && s.c >= 0 && s.c < cols;

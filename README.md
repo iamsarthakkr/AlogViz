@@ -1,21 +1,41 @@
-## Getting Started
+# AlgoViz
 
-This project is a starter template for next application using Typescript, Tailwind CSS and Eslint setup.
+A pathfinding-algorithm visualizer. Paint walls on a grid, place start/goal markers, then
+watch a pathfinding algorithm (or generate a maze) animate step by step on canvas.
 
-## Create a new repo using gh cli
+- **Algorithms**: Breadth-first search, Depth-first search, Bidirectional BFS, Dijkstra's
+- **Maze / pattern generators**: Recursive Division (+ vertical/horizontal skew), Prim's,
+  Randomized Depth-First Search, Random Walls
+- **Controls**: Visualize, Pause/Step, Clear path, speed presets (slow/medium/fast)
 
-```bash
-gh repo create <app-name> --private --template Studio-SK/next-template
-```
+See [CLAUDE.md](./CLAUDE.md) for project context and conventions,
+[ARCHITECTURE.md](./ARCHITECTURE.md) for how state, rendering, and the algorithm/maze
+generator pipeline work, [FEATURES.md](./FEATURES.md) for a feature-by-feature breakdown, and
+[DEPLOY.md](./DEPLOY.md) for CI, releases and production deployment.
 
-### Install dependencies
+## Stack
+
+Vite 8 · React 19 · TypeScript · Zustand 5 · Tailwind CSS 4 + daisyUI
+
+## Getting started
 
 ```bash
 npm install
-```
-
-### Run the development server
-
-```bash
 npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+## Scripts
+
+```bash
+npm run dev      # start the Vite dev server
+npm run build    # type-check (tsc -b) + static production build into dist/
+npm run preview  # serve the production build locally
+npm run lint     # eslint
+npm test         # vitest (watch mode); npm run test:coverage for a coverage report
+```
+
+## Deployment
+
+Docker + nginx behind Caddy on a VPS, with CI and tag-based releases — see [DEPLOY.md](DEPLOY.md).

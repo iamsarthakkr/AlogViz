@@ -1,6 +1,11 @@
+// Authored by - Sarthak Kumar
+//
+// prims: randomized minimum-spanning-tree maze carve over the odd/odd cell lattice.
+// Maintains a `frontiers` list of candidate walls, randomly consumes one at a time.
+
 import { Coord } from '@/types/grid';
 import { MazeGenerator } from '@/types/mazeGenerator';
-import { neighbors4, random, second_neighbors4, shuffle } from '@features/algo/utils';
+import { neighbors4, random, second_neighbors4, shuffle } from '@/features/algo/utils';
 
 // prim's spanning tree (randomized)
 export const prims: MazeGenerator = function* (rows, cols) {
@@ -14,14 +19,14 @@ export const prims: MazeGenerator = function* (rows, cols) {
     const taken = new Uint8Array(rows * cols);
 
     const start: Coord = {
-        r: random(0, rows - 1),
-        c: random(0, cols - 1),
+        r: random(1, rows - 1),
+        c: random(1, cols - 1),
     }; // start from {odd, odd } point
     if ((start.r & 1) === 0) start.r--;
     if ((start.c & 1) === 0) start.c--;
 
     const isCell = (u: Coord) => {
-        return (u.r & 1) == 1 && (u.c & 1) == 1;
+        return (u.r & 1) === 1 && (u.c & 1) === 1;
     };
 
     const addFrontiers = (u: Coord) => {

@@ -1,5 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// getGridSnapshot: freezes a plain-data copy of the current grid for an algorithm run.
+// Returns null if start/goal aren't valid, which is what silently no-ops Visualize/Step.
+
 import { GridSnapShot } from '@/types/grid';
-import { useGridStore } from '@features/store';
+import { useGridStore } from '@/features/store';
 
 export const getGridSnapshot = (): GridSnapShot | null => {
     const state = useGridStore.getState();

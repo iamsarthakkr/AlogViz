@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// dijkstra: shortest path via a binary min-heap priority queue keyed on distance.
+// NOTE: edge weight is hardcoded to 1 (no weighted terrain cell yet), so this is
+// currently behaviorally equivalent to BFS on grids the UI can produce.
+
 import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
 import { equal, neighbors4 } from './utils';

@@ -1,12 +1,18 @@
-'use client';
+// Authored by - Sarthak Kumar
+//
+// CanvasGrid: the interactive grid surface — owns pointer input and base-layer redraws.
+// - Pointer handlers: paint walls (left=wall, right/alt=erase), drag start/goal markers
+// - Redraws the base canvas via drawBaseScene whenever grid state changes (debounced via useRaf)
+// - Exposes CanvasGridHandle (ctx getters, clearOverlay, redrawBase) for the toolbar/animation hooks
+// - Respects gridLock: pointer editing is a no-op while an algorithm/maze run owns the grid
 
 import React, { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Brush, CellKind, DragMode } from '@/types/grid';
-import { useGridStore } from '@features/store';
+import { useGridStore } from '@/features/store';
 import { CanvasStage, CanvasStageHandle } from '@/components/CanvasStage';
-import { clearOverlay, drawBaseScene } from '@features/painters';
-import { useRaf } from '@features/hooks/useRaf';
+import { clearOverlay, drawBaseScene } from '@/features/painters';
+import { useRaf } from '@/features/hooks/useRaf';
 
 /** The API CanvasGrid will expose to parents */
 export type CanvasGridHandle = {
@@ -109,6 +115,7 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
                 cv.setPointerCapture(e.pointerId);
             } catch {
                 // no-op
+                console.error('failed to capture: ' + e);
             }
 
             const { r, c } = hitCell(e);
@@ -127,6 +134,15 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
         [hitCell, paintAt],
     );
 
+    const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+        try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+            console.error('failed to release capture: ' + e);
+        }
+        dragMode.current = DragMode.None;
+    }, []);
+
     const onPointerMove = useCallback(
         (e: React.PointerEvent<HTMLDivElement>) => {
             if (useGridStore.getState().gridLock) return;
@@ -141,14 +157,6 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
         [hitCell, paintAt],
     );
 
-    const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-        try {
-            e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-            // no-op
-        }
-        dragMode.current = DragMode.None;
-    }, []);
     const width = cols * cellSize;
     const height = rows * cellSize;
 

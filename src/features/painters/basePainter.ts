@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// basePainter: pure draw functions for the base canvas layer (cells, walls, grid lines, markers).
+// - drawBaseScene is the main entry point, called on every grid state change
+// - drawGridLines skips segments between two adjacent walls so wall blocks render as solid shapes
+// - drawStartMarker/drawGoalMarker draw the arrow/ringed-dot glyphs
+
 import { CellKind, Coord } from '@/types/grid';
 import { lightPalette as palette } from './colors';
 
@@ -95,6 +102,7 @@ function drawGridLines(
     }
 }
 
+// draws base grid with grid lines, cells and markers
 export function drawBaseScene(
     ctx: CanvasRenderingContext2D,
     rows: number,

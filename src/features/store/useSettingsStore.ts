@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// useSettingsStore: UI/session state, separate from grid data.
+// - Selected algorithm/maze keys, speed preset, settings-modal draft fields
+// - Mostly cosmetic bookkeeping for dropdown labels; runner speed lives in useAlgoController
+
 import { create } from 'zustand';
 import { SettingsState } from '@/types/settings';
 

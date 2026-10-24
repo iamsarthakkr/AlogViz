@@ -1,8 +1,13 @@
+// Authored by - Sarthak Kumar
+//
+// dfs: depth-first search. Explores greedily via an explicit stack — does NOT
+// guarantee the shortest path. Same generator/event shape as the other algorithms.
+
 import { PathFinder } from '@/types/algo';
 import { CellKind, Coord } from '@/types/grid';
 import { equal, neighbors4 } from './utils';
 
-export const dfs: PathFinder = function*(grid) {
+export const dfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;

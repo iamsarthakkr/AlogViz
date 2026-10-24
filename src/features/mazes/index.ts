@@ -1,3 +1,10 @@
+// Authored by - Sarthak Kumar
+//
+// mazes/index: registry of maze/pattern generators.
+// - `mazes`: label -> MazeGenerator generator function
+// - `mazesLabels`: display order for the maze dropdown (must stay in sync with `mazes`)
+// - the three Recursive Division entries share one factory, parameterized by vertical_prob
+
 import { MazeGenerator } from '@/types/mazeGenerator';
 import { randomGenerator } from './random';
 import { floodFill } from './floodFill';

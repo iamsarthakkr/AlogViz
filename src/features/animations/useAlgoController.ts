@@ -1,9 +1,15 @@
-'use client';
+// Authored by - Sarthak Kumar
+//
+// useAlgoController: orchestrates pathfinding algorithm playback for the toolbar.
+// - Caches one runner per algorithm key (Map), keyed with the grid version it was built from
+// - Invalidates/rebuilds a runner when the grid changes; instantly re-solves if it had finished
+// - Wires runner events -> overlay canvas paints (paintAlgoEvent) and the final path animation
+// - Exposes status/pathLen/visitedApprox + play/pause/step/skipToEnd/clear controls
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Callback, Callback1 } from '@/types/common';
 import { AlgoStatus, type AlgoEvent, type PathFinder } from '@/types/algo';
-import type { CanvasGridHandle } from '@features/CanvasGrid';
+import type { CanvasGridHandle } from '@/features/CanvasGrid';
 import { useGridStore } from '@/features/store';
 import { paintAlgoEvent, animateFinalPath, drawMarkers } from '@/features/painters';
 
@@ -59,7 +65,7 @@ export function useAlgoController(
     const gridVersion = useGridStore((s) => s.gridVersion);
 
     const runners = useRef(new Map<string, CachedRunner>());
-    const cancelPathAnimRef = useRef<Callback>(() => { });
+    const cancelPathAnimRef = useRef<Callback>(() => {});
     const sawPathEventRef = useRef(false);
     const currentKeyRef = useRef<string>(defaultKey);
     const speedRef = useRef(speed);
@@ -68,7 +74,7 @@ export function useAlgoController(
         (snap: GridSnapShot, instant: boolean): ((e: AlgoEvent) => void) => {
             const ctx = gridRef.current?.getOverlayCtx() ?? null;
             if (!ctx) {
-                return () => { };
+                return () => {};
             }
 
             const { cellSize } = snap;
@@ -82,6 +88,7 @@ export function useAlgoController(
                     validGoal: api.validGoal(),
                     drawPathInstant: instant,
                 });
+
                 if (event.type === 'visit') setVisitedApprox((v) => v + 1);
                 if (event.type === 'path') {
                     sawPathEventRef.current = true;
@@ -117,7 +124,7 @@ export function useAlgoController(
     );
 
     const createRunnerFor = useCallback(
-        (key: string, instant: boolean = opts.animatePath ?? false) => {
+        (key: string, instant: boolean = opts.animatePath === false) => {
             const algo = registry[key];
             if (!algo) return null;
 
@@ -167,7 +174,7 @@ export function useAlgoController(
         if (
             !cached ||
             cached.buildVersion !== gridVersion ||
-            (cached && cached.runner.getStatus() == AlgoStatus.done)
+            (cached && cached.runner.getStatus() === AlgoStatus.done)
         ) {
             return createRunnerFor(key);
         }
