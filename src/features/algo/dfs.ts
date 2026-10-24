@@ -7,7 +7,7 @@ import { PathFinder } from '@/types/algo';
 import { CellKind, Coord } from '@/types/grid';
 import { equal, neighbors4 } from './utils';
 
-export const dfs: PathFinder = function*(grid) {
+export const dfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;

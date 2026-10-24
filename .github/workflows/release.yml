@@ -1,0 +1,86 @@
+name: Release
+
+# Pushing a version tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`) runs CI on that
+# commit, then publishes ghcr.io/<owner>/algo-viz:<version> and creates a GitHub release.
+# Deploying stays manual.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  release:
+    name: Publish image
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version and image name
+        id: meta
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+
+          # The tag and package.json must agree, otherwise the release is ambiguous
+          pkg_version=$(node -p "require('./package.json').version")
+          if [ "$version" != "$pkg_version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${pkg_version}"
+            exit 1
+          fi
+
+          # GHCR image names must be lowercase
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${owner}/algo-viz" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=algo-viz
+          cache-to: type=gha,mode=max,scope=algo-viz
+
+      # Created last on purpose: a release should only exist once its image is pullable
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "Image: \`${IMAGE}\`"

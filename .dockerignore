@@ -1,0 +1,14 @@
+.git
+.github
+.gitignore
+.claude
+.idea
+node_modules
+dist
+coverage
+.env
+.env.*
+*.md
+Dockerfile
+compose.yaml
+.dockerignore

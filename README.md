@@ -10,7 +10,8 @@ watch a pathfinding algorithm (or generate a maze) animate step by step on canva
 
 See [CLAUDE.md](./CLAUDE.md) for project context and conventions,
 [ARCHITECTURE.md](./ARCHITECTURE.md) for how state, rendering, and the algorithm/maze
-generator pipeline work, and [FEATURES.md](./FEATURES.md) for a feature-by-feature breakdown.
+generator pipeline work, [FEATURES.md](./FEATURES.md) for a feature-by-feature breakdown, and
+[DEPLOY.md](./DEPLOY.md) for CI, releases and production deployment.
 
 ## Stack
 
@@ -34,3 +35,7 @@ npm run preview  # serve the production build locally
 npm run lint     # eslint
 npm test         # vitest (watch mode); npm run test:coverage for a coverage report
 ```
+
+## Deployment
+
+Docker + nginx behind Caddy on a VPS, with CI and tag-based releases — see [DEPLOY.md](DEPLOY.md).
