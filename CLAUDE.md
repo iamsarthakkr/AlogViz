@@ -1,9 +1,8 @@
 # AlgoViz — Project Context
 
 > This file is the entry point for working in this codebase. For deeper detail see
-> [ARCHITECTURE.md](./ARCHITECTURE.md) (state/render/animation internals),
-> [FEATURES.md](./FEATURES.md) (what the app does, feature by feature), and
-> [ROADMAP.md](./ROADMAP.md) (what's left, categorized bugs/issues).
+> [ARCHITECTURE.md](./ARCHITECTURE.md) (state/render/animation internals) and
+> [FEATURES.md](./FEATURES.md) (what the app does, feature by feature).
 
 ## What this project is
 
@@ -42,7 +41,6 @@ npm run test:coverage   # single run + coverage report (fails under the threshol
 ```
 
 `npm run build` emits a fully static bundle in `dist/` that any static file host can serve.
-See [ROADMAP.md](./ROADMAP.md) for known gaps.
 
 ## Directory map
 
@@ -85,7 +83,7 @@ confuse them when navigating.
   real `Math.random`, so failures are reproducible.
 - Animation: `installFakeRaf()` from `tests/helpers/raf.ts` replaces `requestAnimationFrame`;
   advance with `frame()` / `flush()` (wrap in `act()` when React state updates).
-- Known bugs are pinned with `it.fails(...)` plus a `BUG:` comment and a ROADMAP.md entry. When
+- Known bugs are pinned with `it.fails(...)` plus a `BUG:` comment explaining the bug and the fix. When
   you fix one, the `it.fails` starts failing — flip it to `it` (or remove the label from
   `KNOWN_OUT_OF_BOUNDS` in the maze contract).
 
@@ -101,8 +99,8 @@ makes play/pause/step/skip-to-end and speed control "free" — they're all just 
 controls, not algorithm-specific code. See ARCHITECTURE.md for the full flow.
 
 Adding a new algorithm or maze generator is meant to be "write one generator file, register
-it in an index.ts map" — see ROADMAP.md for what's still needed to make that fully true in
-practice (some duplication and gaps remain).
+it in an index.ts map". The contract suites in `tests/` check a new entry automatically; the
+remaining friction is the per-file `id`/`inb`/`isWall` helpers and the parallel labels array.
 
 ## Conventions actually used in this codebase
 

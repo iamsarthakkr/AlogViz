@@ -3,7 +3,7 @@
 // useRaf: coalesces multiple schedule() calls within one frame into a single rAF job.
 // pendingRef gates duplicate rAF requests; cleanup must reset it too (not just cancel
 // the frame) so React Strict Mode's dev-only double-effect-invoke doesn't leave it
-// permanently stuck true (see ARCHITECTURE.md / ROADMAP.md High #6 for the bug this fixed).
+// permanently stuck true (regression test: tests/features/hooks/useRaf.test.ts).
 
 import { Callback } from '@/types/common';
 import { useCallback, useEffect, useRef } from 'react';

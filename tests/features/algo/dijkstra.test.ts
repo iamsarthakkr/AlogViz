@@ -10,7 +10,7 @@ describe('dijkstra', () => {
         expect(visits.some((e) => e.type === 'visit' && e.at.r === 3 && e.at.c === 3)).toBe(false);
     });
 
-    // Documents the ROADMAP High #5 limitation: with every edge weighing 1, dijkstra can't
+    // Documents a known limitation (no weighted cells yet): with every edge weighing 1, dijkstra can't
     // produce a different-length path than BFS on any grid the UI can build.
     it('produces the same path length as BFS while all edges weigh 1', () => {
         const grid = emptyGrid(10, 10, { r: 0, c: 0 }, { r: 9, c: 6 });

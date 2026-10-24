@@ -93,11 +93,6 @@ smoothing for crisp cell edges) and exposes `getCtx()`. `components/CanvasStage.
 two of these — `base` (pointer-events auto) and `overlay` (`pointer-events: none`,
 absolutely positioned on top) — and exposes both contexts via `useImperativeHandle`.
 
-> **Dead code**: `features/Canvas/` (`Canvas.tsx` + `useCanvas.ts` + `types.ts`) is a
-> byte-for-byte-similar duplicate of `components/CanvasStage` + `useCanvasLayer`, but it is
-> never imported anywhere in the app (`CanvasGrid` imports `CanvasStage` from
-> `@/components/CanvasStage`). Treat `components/CanvasStage` as canonical. See ROADMAP.md.
-
 `features/CanvasGrid/CanvasGrid.tsx` owns a `CanvasStage` and is the thing everything else
 talks to:
 - Subscribes to `useGridStore` with `useShallow` for `[rows, cols, cellSize, cells, start, goal]`.
@@ -126,7 +121,7 @@ talks to:
 - `colors.ts`: `GridPalette` with a `lightPalette` and `darkPalette`. **`darkPalette` is
   currently identical to `lightPalette`**, and both painter modules hardcode
   `import { lightPalette as palette }` — there is no theme-switching logic anywhere in the
-  app despite the two-palette scaffold. See ROADMAP.md.
+  app despite the two-palette scaffold.
 
 ## 4. Algorithms & the event-generator pattern
 
@@ -139,7 +134,7 @@ type PathFinder = (grid: GridSnapShot) => Generator<AlgoEvent, void, void>;
 Every algorithm in `features/algo/*.ts` (`bfs`, `dfs`, `dijkstra`, `bidirectionalBfs`) is a
 generator function matching `PathFinder`. Shape is consistent across all four:
 1. Build local closures over the snapshot: `id(coord)`, `inb(coord)`, `isWall(coord)`,
-   `getCoord(id)` — **re-implemented per file** rather than shared (see ROADMAP.md).
+   `getCoord(id)` — **re-implemented per file** rather than shared.
 2. Seed the frontier structure (`Queue` for bfs/bidirectional, plain array-as-stack for dfs,
    `min_priority_queue` binary heap for dijkstra), `yield {type:'enqueue', at:start}`.
 3. Main loop: pop next node, `yield {type:'visit', ...}`, expand `neighbors4` (4-directional,
@@ -151,7 +146,7 @@ generator function matching `PathFinder`. Shape is consistent across all four:
 
 `dijkstra` currently uses a uniform edge weight of `1` for every step (`const w = 1`) — with
 no weighted-terrain cell kind in the grid, it is behaviorally equivalent to BFS but pays heap
-overhead; see ROADMAP.md.
+overhead.
 
 `bidirectionalBfs` runs two independent BFS frontiers (`queue[0]` from start, `queue[1]` from
 goal) in lockstep, alternating one pop per frontier per outer loop iteration, and stops the

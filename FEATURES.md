@@ -41,7 +41,7 @@ Four algorithms, selectable from the "Algorithm" dropdown in the toolbar
 | Breadth-first search | `bfs.ts` | Guarantees shortest path (unweighted); ring-buffer `Queue`. |
 | Depth-first search | `dfs.ts` | Explores greedily, does **not** guarantee shortest path; explicit array-as-stack. |
 | Bidirectional BFS | `bidirectionalBfs.ts` | Two BFS frontiers grown from start and goal simultaneously, meeting in the middle; typically visits fewer cells than plain BFS. |
-| Dijkstra's | `dijkstra.ts` | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet — see ROADMAP.md). |
+| Dijkstra's | `dijkstra.ts` | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet). |
 
 Each algorithm is a generator that yields one event per unit of work
 (`enqueue`/`visit`/final `path`) rather than computing the answer up front — this is what
@@ -125,5 +125,5 @@ A full settings modal (`features/Toolbar/Settings.tsx`) exists for editing row c
 count, and cell size in pixels (draft values validated/clamped, applied atomically on
 "Apply"), backed by `useGridStore.setDimensions`/`setCellSize`. **It is not currently
 rendered anywhere in the app** (not exported from `Toolbar/index.ts`, not mounted by
-`Toolbar.tsx`) — see [ROADMAP.md](./ROADMAP.md) High #3. Until it's wired up, grid dimensions
+`Toolbar.tsx`). Until it's wired up, grid dimensions
 are fixed at the `utils/constants.ts` defaults (35 rows × 61 cols × 20px cells).
