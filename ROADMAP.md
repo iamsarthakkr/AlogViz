@@ -27,9 +27,10 @@ end to end.
       algorithm is _one_ export added to _one_ array, instead of updating both a `Record` and
       a parallel `string[]` labels array that must stay in sync by convention
       (`features/algo/index.ts`, `features/mazes/index.ts`).
-- [ ] Add a lightweight test harness (none exists today — no `*.test.ts`, no test runner in
-      `package.json`) so a new generator can be verified (finds shortest path on a known
-      grid, terminates, doesn't yield out-of-bounds coords) without manual UI testing.
+- [x] Add a lightweight test harness so a new generator can be verified without manual UI
+      testing. Vitest lives in `tests/` (mirrors `src/`); `tests/features/algo/index.test.ts`
+      and `tests/features/mazes/index.test.ts` run a contract suite over every registered
+      algorithm/maze, so registering a new one tests it automatically.
 - [ ] Document (in code or ARCHITECTURE.md) the exact generator contract new authors must
       follow: yield order guarantees, that `path` must be the _last_ yield, that coordinates
       must be in-bounds, etc. — currently this is only inferable by reading existing
@@ -54,15 +55,20 @@ end to end.
    anywhere (`Toolbar/index.ts` only exports `Toolbar`, which only renders `AlgoControls`).
    The grid is permanently `ROWS=35, COLS=61, CELL_SIZE=20` (`utils/constants.ts`) for any
    real user.
-4. ~~**`features/Canvas/` is dead, unused, byte-level-duplicate code**~~ Resolved: deleted. of
-   `components/CanvasStage` + `useCanvasLayer` (confirmed: zero imports anywhere in `src/`).
-   Two parallel implementations of the same stacked-canvas concept is a correctness risk the
-   moment someone fixes a bug in one and not the other, believing it's "the" implementation.
+4. ~~**`features/Canvas/` was dead, byte-level-duplicate code** of `components/CanvasStage` +
+   `useCanvasLayer`.~~ Resolved: deleted.
 5. **Dijkstra has no weighted cells to justify its own existence.** `CellKind` is only
    `empty | wall`; `dijkstra.ts` hardcodes edge weight `w = 1` for every step, making it
    behaviorally identical to BFS (just slower, due to heap overhead) for every grid the UI
    can currently produce. Either add a weighted-terrain `CellKind` (with paint UI + palette
    entry) or treat Dijkstra as a placeholder until one exists.
+
+6. **Prim's maze sometimes comes out as a solid block of walls.** `prims.ts` picks the start
+   as `random(0, rows-1)` and decrements it when even, so a roll of `0` gives `r = -1` (same
+   for `c`). No frontier is in bounds from there, so nothing is carved after `fill-wall` —
+   roughly 1 run in 20 on the default 35x61 grid. Fix: `randomOdd(1, rows - 2)` /
+   `randomOdd(1, cols - 2)`. Pinned by `it.fails` in `tests/features/mazes/prims.test.ts` and
+   the in-bounds contract in `tests/features/mazes/index.test.ts`.
 
 ### Medium — code quality, maintainability, extensibility
 
@@ -71,10 +77,8 @@ end to end.
    `prims.ts`) — not shared via `features/algo/utils.ts` despite that file existing for
    exactly this purpose. Increases the cost of every new algorithm and risks the four copies
    drifting (e.g. bounds-check logic diverging).
-2. No automated tests anywhere in the repo (`package.json` has no test script/dependency).
-   Algorithms and maze generators are pure functions of `(grid)`/`(rows,cols)` and would be
-   straightforward to unit test (shortest-path correctness on fixed grids, termination,
-   in-bounds yields) without touching the DOM/canvas at all.
+2. ~~No automated tests.~~ Resolved: Vitest + Testing Library suite in `tests/` with coverage
+   thresholds (`npm run test:coverage`).
 3. `algorithms`/`algoLabels` and `mazes`/`mazesLabels` are two parallel data structures that
    must be hand-kept in sync (`features/algo/index.ts`, `features/mazes/index.ts`) — easy to
    add a key to one and forget the other, silently hiding or breaking an option.
@@ -98,6 +102,11 @@ Step`) while Visualize/Clear-path use `disabled` instead — two different UX pa
    scale if the registry grows much larger and the user flips through many algorithms in one
    session (each keeps a full generator + closures alive).
 
+10. Randomized DFS maze (`floodFill.ts`) can start one cell past the grid edge: the start is
+    `random(0, floor(rows/2)) * 2 + 1`, which can equal `rows` (or `cols`). The first carve is
+    out of bounds and the walk then carves a hole through the outer border wall. Fix:
+    `random(0, floor((rows - 2) / 2))`. Pinned by `it.fails` in `tests/features/mazes/floodFill.test.ts`.
+
 ### Low — minor bugs, typos, naming nits
 
 1. Typo: `"Breath-first search"` should be `"Breadth-first search"`
@@ -118,3 +127,13 @@ Step`) while Visualize/Clear-path use `disabled` instead — two different UX pa
    sourcing from `GridPalette` — minor inconsistency given how deliberately the rest of the
    palette is centralized.
 6. ~~`next.config.ts` is an empty stub.~~ Resolved: Next.js removed.
+7. `shuffle` in `features/algo/utils.ts` draws `j` from `[0, i-1]` (Sattolo's algorithm)
+   instead of `[0, i]` (Fisher–Yates), so it only produces cyclic permutations — no element
+   ever stays in place. Mazes still work but are less random than intended.
+   Pinned by `it.fails` in `tests/features/algo/utils.test.ts`.
+8. `bidirectionalBfs` returns `[start, neighbour, start]` when `start === goal`. The grid store
+   never lets the markers overlap, so it's unreachable from the UI today.
+   Pinned by `it.fails` in `tests/features/algo/bidirectionalBfs.test.ts`.
+9. `useAlgoController`'s `animatePath` option is inverted: it's documented as "default true
+   (if false, path is drawn instantly)" but is passed straight through as `instant`. Nothing
+   passes it today. Pinned by `it.fails` in `tests/features/animations/useAlgoController.test.ts`.

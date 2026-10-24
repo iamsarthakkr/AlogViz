@@ -33,4 +33,5 @@ npm run dev      # start the Vite dev server
 npm run build    # type-check (tsc -b) + static production build into dist/
 npm run preview  # serve the production build locally
 npm run lint     # eslint
+npm test         # vitest (watch mode); npm run test:coverage for a coverage report
 ```

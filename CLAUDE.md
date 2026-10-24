@@ -26,7 +26,7 @@ pattern that both pathfinding algorithms and maze generators share.
 - **Prettier** + ESLint (flat config: `typescript-eslint` + `react-hooks` + `react-refresh`)
 - One path alias (`vite.config.ts` + `tsconfig.app.json`): `@/*` → `src/*` — import as `@/features/...`, `@/ui/...`
 
-No test framework is configured. No backend/API/database — everything is client-side, in-memory, and non-persistent (a refresh resets the grid).
+Tests: **Vitest** + Testing Library (jsdom), in `tests/` — see "Tests" below. No backend/API/database — everything is client-side, in-memory, and non-persistent (a refresh resets the grid).
 
 ## Running it
 
@@ -36,6 +36,9 @@ npm run dev       # Vite dev server (http://localhost:5173)
 npm run build     # tsc -b type-check, then vite build → dist/
 npm run preview   # serve dist/ locally
 npm run lint
+npm test                # vitest watch mode
+npm run test:run        # single run
+npm run test:coverage   # single run + coverage report (fails under the thresholds in vite.config.ts)
 ```
 
 `npm run build` emits a fully static bundle in `dist/` that any static file host can serve.
@@ -63,11 +66,28 @@ src/
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
   utils/                 Small pure helpers (grid init/snap, clamp, speed presets, constants)
+tests/                   Mirrors src/ one-to-one (src/features/algo/bfs.ts → tests/features/algo/bfs.test.ts)
+  setup.ts               jest-dom, canvas getContext stub, resets both Zustand stores before each test
+  helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx
 ```
 
 Note: there are **two unrelated things called "store"** in this repo — `src/store/` (data
 structures: `Queue`, `min_priority_queue`) and `src/features/store/` (Zustand app state). Don't
 confuse them when navigating.
+
+## Tests
+
+- Test files live in `tests/`, mirroring the `src/` layout; import source through `@/`.
+- `tests/features/algo/index.test.ts` and `tests/features/mazes/index.test.ts` are **contract
+  suites** run over the whole registry — a newly registered algorithm or maze is tested
+  automatically. Add a per-file test only for behaviour specific to that algorithm.
+- Randomness: use `seedRandom(seed)` / `fixRandom(value)` from `tests/helpers/random.ts`, never
+  real `Math.random`, so failures are reproducible.
+- Animation: `installFakeRaf()` from `tests/helpers/raf.ts` replaces `requestAnimationFrame`;
+  advance with `frame()` / `flush()` (wrap in `act()` when React state updates).
+- Known bugs are pinned with `it.fails(...)` plus a `BUG:` comment and a ROADMAP.md entry. When
+  you fix one, the `it.fails` starts failing — flip it to `it` (or remove the label from
+  `KNOWN_OUT_OF_BOUNDS` in the maze contract).
 
 ## Core architectural idea
 
