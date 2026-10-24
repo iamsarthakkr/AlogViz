@@ -31,10 +31,13 @@ describe('floodFill (randomized DFS)', () => {
         expect(countOpen(cells)).toBe(lattice + (lattice - 1));
     });
 
-    // BUG: the start is picked as random(0, floor(rows/2)) * 2 + 1, which can be rows (or cols)
-    // itself — one past the last cell. The generator then carves through the outer border.
-    // Fix: random(0, floor((rows - 2) / 2)). See ROADMAP.md.
-    it.fails('never picks a start outside the grid', () => {
+    it('always carves a maze, even when the RNG rolls 0', () => {
+        fixRandom(0);
+        const cells = applyMazeEvents(ROWS, COLS, collect(floodFill(ROWS, COLS)));
+        expect(countOpen(cells)).toBeGreaterThan(0);
+    });
+
+    it('never picks a start outside the grid', () => {
         fixRandom(0.999999);
         const first = collect(floodFill(ROWS, COLS)).find((e) => e.type === 'carve');
         expect(first?.type === 'carve' && first.at.r < ROWS && first.at.c < COLS).toBe(true);

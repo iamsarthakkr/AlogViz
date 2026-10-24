@@ -19,8 +19,8 @@ export const prims: MazeGenerator = function* (rows, cols) {
     const taken = new Uint8Array(rows * cols);
 
     const start: Coord = {
-        r: random(0, rows - 1),
-        c: random(0, cols - 1),
+        r: random(1, rows - 1),
+        c: random(1, cols - 1),
     }; // start from {odd, odd } point
     if ((start.r & 1) === 0) start.r--;
     if ((start.c & 1) === 0) start.c--;

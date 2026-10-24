@@ -14,8 +14,7 @@ describe('prims', () => {
     });
 
     it('carves a fully connected perfect maze over the lattice', () => {
-        // seeds chosen so the start isn't on row/col 0 — see the it.fails below
-        for (const seed of [2, 3, 4, 5, 8]) {
+        for (let seed = 1; seed < 25; seed++) {
             seedRandom(seed);
             const cells = applyMazeEvents(ROWS, COLS, collect(prims(ROWS, COLS)));
             const lattice = ((ROWS - 1) / 2) * ((COLS - 1) / 2);
@@ -26,13 +25,15 @@ describe('prims', () => {
         }
     });
 
-    // BUG: the start is random(0, rows-1) and then decremented when even, so a roll of 0 gives
-    // r = -1 (likewise for c). From there no frontier is in bounds and the "maze" is the solid
-    // wall grid from fill-wall: about 1 in 20 runs on the default 35x61 grid.
-    // Fix: pick with randomOdd(1, rows - 2) / randomOdd(1, cols - 2). See ROADMAP.md.
-    it.fails('always carves a maze, even when the RNG rolls 0', () => {
+    it('always carves a maze, even when the RNG rolls 0', () => {
         fixRandom(0);
         const cells = applyMazeEvents(ROWS, COLS, collect(prims(ROWS, COLS)));
         expect(countOpen(cells)).toBeGreaterThan(0);
+    });
+
+    it('never picks a start outside the grid', () => {
+        fixRandom(0.999999);
+        const first = collect(prims(ROWS, COLS)).find((e) => e.type === 'carve');
+        expect(first?.type === 'carve' && first.at.r < ROWS && first.at.c < COLS).toBe(true);
     });
 });
