@@ -174,7 +174,7 @@ export function useAlgoController(
         if (
             !cached ||
             cached.buildVersion !== gridVersion ||
-            (cached && cached.runner.getStatus() == AlgoStatus.done)
+            (cached && cached.runner.getStatus() === AlgoStatus.done)
         ) {
             return createRunnerFor(key);
         }

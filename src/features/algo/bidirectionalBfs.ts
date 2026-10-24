@@ -9,7 +9,7 @@ import { CellKind, Coord } from '@/types/grid';
 import { PathFinder } from '@/types/algo';
 import { neighbors4 } from './utils';
 
-export const bidirectionalBfs: PathFinder = function*(grid) {
+export const bidirectionalBfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
     const id = (s: Coord) => s.r * cols + s.c;
@@ -26,7 +26,8 @@ export const bidirectionalBfs: PathFinder = function*(grid) {
     seen[0][id(start)] = 1;
     seen[1][id(goal)] = 1;
 
-    if (start.r === goal.r && start.c === goal.c) { // early return for start == end since the algo checks neighbors and not the actual start/end
+    // early return for start == end since the algo checks neighbors and not the actual start/end
+    if (start.r === goal.r && start.c === goal.c) {
         yield { type: 'enqueue', at: start };
         yield { type: 'path', nodes: [start], visited: 0 };
         return;

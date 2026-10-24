@@ -26,7 +26,7 @@ export const prims: MazeGenerator = function* (rows, cols) {
     if ((start.c & 1) === 0) start.c--;
 
     const isCell = (u: Coord) => {
-        return (u.r & 1) == 1 && (u.c & 1) == 1;
+        return (u.r & 1) === 1 && (u.c & 1) === 1;
     };
 
     const addFrontiers = (u: Coord) => {

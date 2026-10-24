@@ -52,7 +52,7 @@ export function animateFinalPath(
     nps = 240,
     onFrame?: Callback,
 ) {
-    if (!nodes.length) return () => { };
+    if (!nodes.length) return () => {};
     let i = 0;
     let raf = 0;
     const perFrame = Math.max(1, Math.ceil(nps / 60));

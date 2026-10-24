@@ -8,7 +8,7 @@ import { MazeGenerator } from '@/types/mazeGenerator';
 import { shuffle } from '@/features/algo/utils';
 
 const wall_prob = 0.35;
-export const randomGenerator: MazeGenerator = function*(rows, cols) {
+export const randomGenerator: MazeGenerator = function* (rows, cols) {
     yield { type: 'clear-wall' };
 
     const cells: Coord[] = [];

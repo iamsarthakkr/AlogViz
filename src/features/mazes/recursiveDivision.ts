@@ -15,7 +15,7 @@ type Range = {
 
 // recursive Division maze generator
 export const recursiveDivision = (vertical_prob: number = 0.5): MazeGenerator =>
-    function*(rows, cols) {
+    function* (rows, cols) {
         yield { type: 'clear-wall' };
 
         // set boundary
