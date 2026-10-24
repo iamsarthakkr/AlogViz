@@ -23,9 +23,4 @@ describe('dfs', () => {
             { r: 0, c: 0 },
         ]);
     });
-
-    it('returns just the start cell when start is the goal', () => {
-        const grid = emptyGrid(3, 3, { r: 1, c: 1 }, { r: 1, c: 1 });
-        expect(runToPath(dfs(grid)).path.nodes).toEqual([{ r: 1, c: 1 }]);
-    });
 });

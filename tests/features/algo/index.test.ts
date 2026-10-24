@@ -47,6 +47,22 @@ describe.each(Object.entries(algorithms))('%s', (_label, algo) => {
         expect(path.nodes).toEqual([]);
     });
 
+    // The store never lets start and goal overlap, but the generator contract shouldn't rely on that
+    describe('when start is the goal', () => {
+        const SAME = emptyGrid(9, 9, { r: 4, c: 4 }, { r: 4, c: 4 });
+
+        it('returns a path of just the start cell', () => {
+            expect(runToPath(algo(SAME)).path.nodes).toEqual([{ r: 4, c: 4 }]);
+        });
+
+        it('finishes without exploring the grid', () => {
+            const { events, path } = runToPath(algo(SAME));
+            const explored = events.filter((e) => e.type !== 'path' && (e.at.r !== 4 || e.at.c !== 4));
+            expect(explored).toEqual([]);
+            expect(path.visited).toBeLessThanOrEqual(1);
+        });
+    });
+
     it('never visits or enqueues a wall or an out-of-bounds cell', () => {
         for (const grid of [OPEN, BLOCKED]) {
             for (const e of runToPath(algo(grid)).events) {

@@ -16,9 +16,4 @@ describe('dijkstra', () => {
         const grid = emptyGrid(10, 10, { r: 0, c: 0 }, { r: 9, c: 6 });
         expect(runToPath(dijkstra(grid)).path.nodes.length).toBe(runToPath(bfs(grid)).path.nodes.length);
     });
-
-    it('returns just the start cell when start is the goal', () => {
-        const grid = emptyGrid(3, 3, { r: 1, c: 1 }, { r: 1, c: 1 });
-        expect(runToPath(dijkstra(grid)).path.nodes).toEqual([{ r: 1, c: 1 }]);
-    });
 });

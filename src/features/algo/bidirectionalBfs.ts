@@ -12,6 +12,13 @@ import { neighbors4 } from './utils';
 export const bidirectionalBfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
+    // early return for start == end since the algo checks neighbors and not the actual start/end
+    if (start.r === goal.r && start.c === goal.c) {
+        yield { type: 'enqueue', at: start };
+        yield { type: 'path', nodes: [start], visited: 0 };
+        return;
+    }
+
     const id = (s: Coord) => s.r * cols + s.c;
     const inb = (s: Coord) => s.r >= 0 && s.r < rows && s.c >= 0 && s.c < cols;
     const isWall = (s: Coord) => cells[id(s)] === CellKind.wall;
@@ -25,13 +32,6 @@ export const bidirectionalBfs: PathFinder = function* (grid) {
     queue[1].push(goal);
     seen[0][id(start)] = 1;
     seen[1][id(goal)] = 1;
-
-    // early return for start == end since the algo checks neighbors and not the actual start/end
-    if (start.r === goal.r && start.c === goal.c) {
-        yield { type: 'enqueue', at: start };
-        yield { type: 'path', nodes: [start], visited: 0 };
-        return;
-    }
 
     yield { type: 'enqueue', at: start };
     yield { type: 'enqueue', at: goal };

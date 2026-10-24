@@ -17,9 +17,4 @@ describe('bidirectionalBfs', () => {
         const uni = runToPath(bfs(grid)).path.visited;
         expect(bi).toBeLessThan(uni);
     });
-
-    it('returns just the start cell when start is the goal', () => {
-        const grid = emptyGrid(3, 3, { r: 1, c: 1 }, { r: 1, c: 1 });
-        expect(runToPath(bidirectionalBfs(grid)).path.nodes).toEqual([{ r: 1, c: 1 }]);
-    });
 });

@@ -11,6 +11,12 @@ import { equal, neighbors4 } from './utils';
 export const bfs: PathFinder = function* (grid) {
     const { rows, cols, cells, start, goal } = grid;
 
+    if (equal(start, goal)) {
+        yield { type: 'enqueue', at: start };
+        yield { type: 'path', nodes: [start], visited: 0 };
+        return;
+    }
+
     const id = (s: Coord) => s.r * cols + s.c;
     const inb = (s: Coord) => s.r >= 0 && s.r < rows && s.c >= 0 && s.c < cols;
     const isWall = (s: Coord) => cells[id(s)] === CellKind.wall;
