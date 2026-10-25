@@ -7,6 +7,7 @@ import { CanvasGrid, CanvasGridHandle } from '@/features/CanvasGrid';
 import { useGridStore, useSettingsStore } from '@/features/store';
 import { installFakeRaf } from '../../helpers/raf';
 import { seedRandom } from '../../helpers/random';
+import { algoLabels } from '@/features/algo';
 
 describe('Toolbar / AlgoControls', () => {
     let raf: ReturnType<typeof installFakeRaf>;
@@ -30,13 +31,13 @@ describe('Toolbar / AlgoControls', () => {
     it('renders the title and controls', () => {
         setup();
         expect(screen.getByText('AlgoViz')).toBeInTheDocument();
-        for (const name of ['Visualize', 'Step', 'Clear path', 'Algorithm', 'Mazes & Patterns', /Speed: medium/])
+        for (const name of ['Visualize', 'Step', 'Clear path', algoLabels[0], 'Mazes & Patterns', /Speed: medium/])
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
     });
 
     it('shows the chosen algorithm in its dropdown', async () => {
         const { user } = setup();
-        await user.click(within(dropdown('Algorithm')).getByText('Depth-first search'));
+        await user.click(within(dropdown(algoLabels[0])).getByText('Depth-first search'));
         expect(screen.getByRole('button', { name: 'Depth-first search' })).toBeInTheDocument();
         expect(useSettingsStore.getState().algoKey).toBe('Depth-first search');
     });

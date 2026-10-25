@@ -74,6 +74,16 @@ describe('useAlgoController', () => {
         expect(pathFills()).toHaveLength(5);
     });
 
+    // Strict Mode runs the unmount cleanup then remounts with the same refs; the cleanup used to
+    // blank currentKeyRef, so Visualize did nothing until an algorithm was picked from the dropdown
+    it('plays the default algorithm under Strict Mode without one being selected', () => {
+        const { result } = renderHook(() => useAlgoController(gridRef, registry), { reactStrictMode: true });
+        act(() => result.current.play());
+        flush();
+        expect(result.current.status).toBe('done');
+        expect(result.current.pathLen).toBe(5);
+    });
+
     it('pause stops the run and releases the grid lock', () => {
         const { result } = render();
         act(() => result.current.play());

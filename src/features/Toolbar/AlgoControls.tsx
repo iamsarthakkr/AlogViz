@@ -21,7 +21,11 @@ type Props = {
 
 export const AlgoControls = ({ ctx }: Props) => {
     const { algoKey, speed, setAlgoKey, setSpeed, setMazeGeneratorKey } = useSettingsStore((s) => s);
-    const algoController = useAlgoController(ctx, algorithms);
+    const algoController = useAlgoController(ctx, algorithms, {
+        initialAlgo: algoKey,
+        initialSpeed: speedToEPS[speed],
+        animatePath: true,
+    });
     const mazeGenerator = useMazeGenerator(mazes);
 
     const onAlgoChange = (k: string) => {

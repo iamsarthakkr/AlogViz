@@ -6,10 +6,11 @@
 
 import { create } from 'zustand';
 import { SettingsState } from '@/types/settings';
+import { algoLabels } from '@/features/algo';
 
 export const useSettingsStore = create<SettingsState>((set) => {
     return {
-        algoKey: '',
+        algoKey: algoLabels[0], // default to BFS
         speed: 'medium',
 
         isSettingsOpen: false,

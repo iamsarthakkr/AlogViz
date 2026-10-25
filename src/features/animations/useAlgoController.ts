@@ -258,7 +258,7 @@ export function useAlgoController(
     );
 
     const clear = useCallback(() => {
-        const currentKey = currentKeyRef.current ?? '';
+        const currentKey = currentKeyRef.current || '';
         runners.current.get(currentKey)?.runner.pause();
         createRunnerFor(currentKeyRef.current);
         gridRef.current?.clearOverlay();
@@ -269,7 +269,6 @@ export function useAlgoController(
         for (const r of runners.current.values()) r.runner.pause();
         cancelPathAnimRef.current?.();
         runners.current.clear();
-        currentKeyRef.current = '';
     };
     useEffect(() => cleanup, []);
 
