@@ -99,6 +99,16 @@ describe('CanvasGrid', () => {
         expect(api().at(0, 1)).toBe(CellKind.empty);
     });
 
+    it('stops painting once the pointer is cancelled', () => {
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, 0));
+        fireEvent.pointerCancel(surface, at(0, 0));
+        fireEvent.pointerMove(surface, at(0, 1));
+
+        expect(api().at(0, 0)).toBe(CellKind.wall);
+        expect(api().at(0, 1)).toBe(CellKind.empty);
+    });
+
     it('bumps gridVersion on edits so cached algorithm runs are invalidated', () => {
         const { surface, at } = setup();
         const version = api().gridVersion;
@@ -120,5 +130,10 @@ describe('CanvasGrid', () => {
         base.fills.length = 0;
         ref.current!.redrawBase();
         expect(base.fills.length).toBeGreaterThan(0);
+    });
+
+    it('claims touch gestures so dragging paints instead of scrolling', () => {
+        const { surface } = setup();
+        expect(surface).toHaveStyle({ touchAction: 'none' });
     });
 });

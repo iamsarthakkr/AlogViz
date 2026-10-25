@@ -169,11 +169,13 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerUp}
+            onPointerCancel={onPointerUp}
             style={{
                 position: 'relative',
                 width,
                 height,
                 background: '#fff',
+                touchAction: 'none',
                 ...style,
             }}
         >
