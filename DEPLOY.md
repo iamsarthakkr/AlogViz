@@ -80,8 +80,8 @@ git push origin main v1.0.1
 
    ```bash
    mkdir -p /srv/apps/algo-viz && cd /srv/apps/algo-viz
-   curl -fsSLO https://raw.githubusercontent.com/iamsarthakkr/AlogViz/main/compose.yaml
-   curl -fsSL -o .env https://raw.githubusercontent.com/iamsarthakkr/AlogViz/main/.env.example
+   curl -fsSLO https://raw.githubusercontent.com/iamsarthakkr/AlgoViz/main/compose.yaml
+   curl -fsSL -o .env https://raw.githubusercontent.com/iamsarthakkr/AlgoViz/main/.env.example
    # edit .env: APP_VERSION (the release to run) and HOST_PORT
    ```
 
@@ -105,7 +105,7 @@ docker compose ps   # wait for "healthy" (the healthcheck polls /healthz every 3
 
 `compose.yaml` refuses to start without `APP_VERSION`, so the VPS never silently runs `:latest`. If a release
 changes `compose.yaml` itself, re-download it from that tag
-(`https://raw.githubusercontent.com/iamsarthakkr/AlogViz/v1.0.1/compose.yaml`) before running compose.
+(`https://raw.githubusercontent.com/iamsarthakkr/AlgoViz/v1.0.1/compose.yaml`) before running compose.
 
 ### Rolling back
 
