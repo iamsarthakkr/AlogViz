@@ -118,12 +118,3 @@ markers stay crisp on high-DPI (Retina) displays instead of blurring. This is in
 rather than user-facing, but shapes what "adding a new visual element" requires (draw at
 logical, not physical, pixel coordinates — the DPR scale is baked into the canvas transform
 once at setup).
-
-## 7. Grid settings (rows / columns / cell size) — implemented but not currently reachable
-
-A full settings modal (`features/Toolbar/Settings.tsx`) exists for editing row count, column
-count, and cell size in pixels (draft values validated/clamped, applied atomically on
-"Apply"), backed by `useGridStore.setDimensions`/`setCellSize`. **It is not currently
-rendered anywhere in the app** (not exported from `Toolbar/index.ts`, not mounted by
-`Toolbar.tsx`). Until it's wired up, grid dimensions
-are fixed at the `utils/constants.ts` defaults (35 rows × 61 cols × 20px cells).

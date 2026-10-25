@@ -21,7 +21,7 @@ pattern that both pathfinding algorithms and maze generators share.
 - **Vite 8** (static SPA build, `@vitejs/plugin-react-swc`), **React 19**
 - **TypeScript**, strict mode
 - **Zustand 5** for state (two stores, no middleware/persistence)
-- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes) for chrome (toolbar, dropdown, settings modal); the grid itself is drawn on `<canvas>`, not DOM
+- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes) for chrome (toolbar, dropdown); the grid itself is drawn on `<canvas>`, not DOM
 - **Prettier** + ESLint (flat config: `typescript-eslint` + `react-hooks` + `react-refresh`)
 - One path alias (`vite.config.ts` + `tsconfig.app.json`): `@/*` → `src/*` — import as `@/features/...`, `@/ui/...`
 

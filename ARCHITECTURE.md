@@ -68,8 +68,7 @@ pointer input (see §4).
 
 ### `useSettingsStore` (`features/store/useSettingsStore.ts`) — UI/session state
 
-`algoKey`, `speed` (`'slow'|'medium'|'fast'`), the Settings-modal draft fields
-(`rowsDraft`/`colsDraft`/`cellSizeDraft` + open/close), and `mazeGeneratorKey`. This store is
+`algoKey`, `speed` (`'slow'|'medium'|'fast'`) and `mazeGeneratorKey`. This store is
 mostly cosmetic bookkeeping for dropdown labels; the actual runner speed lives in
 `useAlgoController`'s own `speed` state (converted from the preset via
 `utils/settings.ts:speedToEPS`).
