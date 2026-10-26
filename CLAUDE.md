@@ -53,8 +53,9 @@ index.html             HTML shell: title/meta, mounts src/main.tsx
 src/
   main.tsx             Entry: fonts, index.css, renders <App /> in StrictMode
   App.tsx              Root component (just renders ui/Grid)
-  index.css            Tailwind + daisyUI setup, theme tokens
-  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator, sizes the grid box; Toolbar + CanvasGrid
+  index.css            Tailwind + daisyUI setup, theme tokens, the .page grid layout (areas per breakpoint)
+  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator; places every piece in the .page grid layout
+  ui/Legend.tsx, Stats.tsx  Side panels (placeholders until the legend and stats are built)
   components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
   features/
     store/               Zustand stores: useGridStore (grid data), useSettingsStore (UI state)
@@ -120,3 +121,8 @@ remaining friction is the per-file `id`/`inb`/`isWall` helpers and the parallel 
   algorithm or maze generator is running.
 - Component/hook pairs follow a `Thing.tsx` + `useThing.ts` split with a barrel `index.ts`
   re-exporting the public surface (see `CanvasGrid/`).
+- Responsive styles are mobile-first with **one desktop breakpoint, `xl:`** (1280px), matching
+  `@variant xl` in the `.page` layout. Render each piece once and place it by grid area; never
+  render a copy per breakpoint. Nothing next to the grid may change size during a run (panels
+  are `clamp()`ed, controls have fixed `xl:` widths): a size change resizes the grid and stops
+  the run. Details in ARCHITECTURE.md §1 "Page layout".

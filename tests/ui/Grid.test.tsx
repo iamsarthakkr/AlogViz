@@ -32,6 +32,31 @@ describe('Grid page', () => {
         raf = installFakeRaf();
     });
 
+    // The layout (index.css .page) places each piece by grid area and only the area map changes per
+    // breakpoint, so every piece must exist exactly once. jsdom ignores CSS, so this checks structure;
+    // the visual layout is checked by hand in device mode.
+    describe('page structure', () => {
+        it('renders each layout area exactly once', () => {
+            render(<Grid />);
+            expect(screen.getAllByRole('banner')).toHaveLength(1);
+            expect(screen.getAllByRole('main')).toHaveLength(1);
+            expect(screen.getAllByRole('complementary', { name: 'Legend' })).toHaveLength(1);
+            expect(screen.getAllByRole('complementary', { name: 'Stats' })).toHaveLength(1);
+        });
+
+        // rendering the controls once per breakpoint (hiding one copy) would duplicate every button
+        it('renders the playback controls once, outside the header', () => {
+            render(<Grid />);
+            expect(screen.getAllByRole('button', { name: 'Visualize' })).toHaveLength(1);
+            expect(within(screen.getByRole('banner')).queryByRole('button', { name: 'Visualize' })).toBeNull();
+        });
+
+        it('puts both grid canvases inside main', () => {
+            render(<Grid />);
+            expect(screen.getByRole('main').querySelectorAll('canvas')).toHaveLength(2);
+        });
+    });
+
     const renderAndVisualize = async () => {
         const { container } = render(<Grid />);
         const overlay = container.querySelectorAll('canvas')[1].getContext('2d') as unknown as MockCtx;

@@ -7,6 +7,8 @@ watch a pathfinding algorithm (or generate a maze) animate step by step on canva
 - **Maze / pattern generators**: Recursive Division (+ vertical/horizontal skew), Prim's,
   Randomized Depth-First Search, Random Walls
 - **Controls**: Visualize, Pause/Step, Clear path, speed presets (slow/medium/fast)
+- **Responsive**: works on phones, tablets and desktops; touch to draw walls, and the grid is
+  sized to the screen on load (resizing rescales it without losing your walls)
 
 See [CLAUDE.md](./CLAUDE.md) for project context and conventions,
 [ARCHITECTURE.md](./ARCHITECTURE.md) for how state, rendering, and the algorithm/maze

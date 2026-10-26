@@ -33,8 +33,49 @@ describe('Dropdown', () => {
         }
     });
 
-    it('applies an extra className', () => {
-        const { container } = render(<Dropdown title="t" options={[]} onSelect={vi.fn()} className="w-40" />);
-        expect(container.firstChild).toHaveClass('d-dropdown', 'w-40');
+    // placement is passed as daisyUI classes so it can change per breakpoint (e.g. up on phones)
+    it('applies an extra className, including placement classes', () => {
+        const { container } = render(
+            <Dropdown title="t" options={[]} onSelect={vi.fn()} className="w-40 d-dropdown-top xl:d-dropdown-bottom" />,
+        );
+        expect(container.firstChild).toHaveClass('d-dropdown', 'w-40', 'd-dropdown-top', 'xl:d-dropdown-bottom');
+    });
+
+    // a title with breakpoint variants contains every variant's text; label keeps one name
+    it('uses label as the accessible name when the title is not plain text', () => {
+        render(
+            <Dropdown
+                title={
+                    <>
+                        <span>Short</span>
+                        <span>Long title</span>
+                    </>
+                }
+                label="Long title"
+                options={[]}
+                onSelect={vi.fn()}
+            />,
+        );
+        expect(screen.getByRole('button', { name: 'Long title' })).toBeInTheDocument();
+    });
+
+    it('wraps the title so a long one truncates instead of wrapping', () => {
+        render(<Dropdown title="A very long option name" options={[]} onSelect={vi.fn()} />);
+        expect(screen.getByText('A very long option name')).toHaveClass('truncate');
+    });
+
+    describe('menu gap', () => {
+        const menu = () => screen.getByRole('list');
+
+        it('sits below the trigger by default', () => {
+            render(<Dropdown title="t" options={['a']} onSelect={vi.fn()} />);
+            expect(menu()).toHaveClass('mt-2');
+        });
+
+        it('follows menuClassName, for menus that open upward', () => {
+            render(<Dropdown title="t" options={['a']} onSelect={vi.fn()} menuClassName="mb-2" />);
+            expect(menu()).toHaveClass('mb-2');
+            expect(menu()).not.toHaveClass('mt-2');
+        });
     });
 });

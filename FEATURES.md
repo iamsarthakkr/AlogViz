@@ -1,6 +1,6 @@
 # Features
 
-What the app does today, ordered core-first. For *how* each is implemented in depth, see
+What the app does today, ordered core-first. For _how_ each is implemented in depth, see
 [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## 1. Interactive wall-painting grid
@@ -36,12 +36,12 @@ be dropped on top of the other marker.
 Four algorithms, selectable from the "Algorithm" dropdown in the toolbar
 (`features/algo/index.ts`):
 
-| Algorithm | File | Notes |
-|---|---|---|
-| Breadth-first search | `bfs.ts` | Guarantees shortest path (unweighted); ring-buffer `Queue`. |
-| Depth-first search | `dfs.ts` | Explores greedily, does **not** guarantee shortest path; explicit array-as-stack. |
-| Bidirectional BFS | `bidirectionalBfs.ts` | Two BFS frontiers grown from start and goal simultaneously, meeting in the middle; typically visits fewer cells than plain BFS. |
-| Dijkstra's | `dijkstra.ts` | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet). |
+| Algorithm            | File                  | Notes                                                                                                                           |
+| -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Breadth-first search | `bfs.ts`              | Guarantees shortest path (unweighted); ring-buffer `Queue`.                                                                     |
+| Depth-first search   | `dfs.ts`              | Explores greedily, does **not** guarantee shortest path; explicit array-as-stack.                                               |
+| Bidirectional BFS    | `bidirectionalBfs.ts` | Two BFS frontiers grown from start and goal simultaneously, meeting in the middle; typically visits fewer cells than plain BFS. |
+| Dijkstra's           | `dijkstra.ts`         | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet).            |
 
 Each algorithm is a generator that yields one event per unit of work
 (`enqueue`/`visit`/final `path`) rather than computing the answer up front — this is what
@@ -64,7 +64,7 @@ enables every control below without algorithm-specific code:
 
 Switching the selected algorithm mid-session preserves each algorithm's own progress
 independently (each has its own cached generator+runner) — flipping back to a previously-run
-algorithm resumes/redisplays where it left off rather than restarting, *unless* the grid
+algorithm resumes/redisplays where it left off rather than restarting, _unless_ the grid
 changed in the meantime, in which case it's rebuilt from the new grid on next display.
 
 Editing the grid (walls/markers) while a **finished** visualization is showing automatically
@@ -78,16 +78,17 @@ A second dropdown ("Mazes & Patterns", `features/mazes/index.ts`) fills the grid
 generated wall pattern, animated the same way algorithms are (generator + `requestAnimationFrame`
 runner), but writing directly into the grid store instead of a canvas overlay:
 
-| Pattern | File | Technique |
-|---|---|---|
-| Recursive Division | `recursiveDivision.ts` (`vertical_prob=0.5`) | Recursively bisects the interior with single-gap walls, unbiased direction choice. |
-| Recursive Division (vertical skew) | same file (`vertical_prob=0.7`) | Same algorithm, biased toward vertical dividing walls → more horizontally elongated chambers. |
-| Recursive Division (horizontal skew) | same file (`vertical_prob=0.3`) | Biased toward horizontal dividing walls. |
-| Prim's | `prims.ts` | Randomized minimum-spanning-tree carve over the odd/odd cell lattice. |
-| Randomized Depth First Search | `floodFill.ts` | Iterative backtracking carve (classic "growing tree" maze). |
-| Random Walls | `random.ts` | Independent per-cell coin flip (35% wall probability), no connectivity guarantee. |
+| Pattern                              | File                                         | Technique                                                                                     |
+| ------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Recursive Division                   | `recursiveDivision.ts` (`vertical_prob=0.5`) | Recursively bisects the interior with single-gap walls, unbiased direction choice.            |
+| Recursive Division (vertical skew)   | same file (`vertical_prob=0.7`)              | Same algorithm, biased toward vertical dividing walls → more horizontally elongated chambers. |
+| Recursive Division (horizontal skew) | same file (`vertical_prob=0.3`)              | Biased toward horizontal dividing walls.                                                      |
+| Prim's                               | `prims.ts`                                   | Randomized minimum-spanning-tree carve over the odd/odd cell lattice.                         |
+| Randomized Depth First Search        | `floodFill.ts`                               | Iterative backtracking carve (classic "growing tree" maze).                                   |
+| Random Walls                         | `random.ts`                                  | Independent per-cell coin flip (35% wall probability), no connectivity guarantee.             |
 
 Behavior common to all patterns:
+
 - Generating a maze first calls `algoController.clear()` (discarding any visualized path so
   it doesn't linger under the new walls), then hides the start/goal markers and **locks the
   grid** for the duration of generation, then restores the markers (re-snapped off any wall
@@ -102,6 +103,7 @@ Behavior common to all patterns:
 ## 5. Live run stats
 
 While an algorithm is selected/running, `useAlgoController` tracks and exposes:
+
 - `visitedApprox` — count of cells visited so far (increments on every `visit` event).
 - `pathLen` — length of the final path once found (`0` if the generator finishes without ever
   yielding a `path` with nodes, i.e. no path exists).
@@ -109,7 +111,8 @@ While an algorithm is selected/running, `useAlgoController` tracks and exposes:
 
 These are currently computed and available on the controller but not all surfaced in the
 toolbar UI (`PlaybackControls.tsx` reads `status` for button state and `speed` for its label; `pathLen`
-and `visitedApprox` are plumbed through but not currently rendered as visible text anywhere).
+and `visitedApprox` are plumbed through but not yet rendered: the page has a `Stats` panel
+(`ui/Stats.tsx`) reserved for them, currently a placeholder).
 
 ## 6. Responsive canvas rendering (crisp at any zoom/DPI)
 
@@ -118,3 +121,24 @@ markers stay crisp on high-DPI (Retina) displays instead of blurring. This is in
 rather than user-facing, but shapes what "adding a new visual element" requires (draw at
 logical, not physical, pixel coordinates — the DPR scale is baked into the canvas transform
 once at setup).
+
+## 7. Responsive layout and grid sizing
+
+The app works from a 320px phone to a large monitor. Grid size is not user-configurable; it is
+chosen from the screen.
+
+- **Layouts.** Below 1280px (phones, tablets, small laptops): a compact header with the
+  algorithm and maze pickers, the grid, the stats and legend, and a bottom bar with Visualize /
+  Step / Clear / Speed within thumb reach. From 1280px: one top bar with everything, the legend
+  on the left and the stats on the right of the grid. See ARCHITECTURE.md §1 "Page layout".
+- **Grid dimensions are picked once, on load** (`utils/layout.ts:pickGridLayout`): columns come
+  from a fixed preset list (21 / 35 / 41 / 51) by how wide the grid's box is, rows from its
+  height. Rows and columns are always odd (the maze generators carve on odd indices inside a
+  wall border). Cell size is a whole number of pixels between 12 and 32.
+- **Resizing or rotating keeps the grid** (`fitCellSize`): rows, columns, walls and markers stay;
+  only the cell size changes. A finished run is re-solved and repainted at the new size; a run
+  in progress is stopped (press Visualize again). Reload to get dimensions picked for the new
+  size. If the box is too small even for 12px cells, the grid scrolls instead of shrinking.
+- **Touch:** dragging on the grid paints instead of scrolling the page (`touch-action: none`),
+  controls are at least 44px tall, and the bottom bar clears the iPhone home bar.
+- **Legend and stats** have their places in the layout but are placeholders for now.
