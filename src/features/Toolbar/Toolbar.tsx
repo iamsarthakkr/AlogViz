@@ -1,11 +1,11 @@
 // Authored by - Sarthak Kumar
 //
-// Toolbar: top-level chrome bar — title + AlgoPickers + PlaybackControls. Receives the algorithm
-// controller and maze generator owned by ui/Grid.tsx and passes them to the controls.
+// Toolbar: the page header — title + AlgoPickers. Receives the algorithm controller and maze
+// generator owned by ui/Grid.tsx and passes them to the pickers. PlaybackControls are not in here:
+// the page places them in their own grid area (top bar on desktop, bottom bar on phones).
 
 import { AlgoController, MazeGeneratorApi } from '@/features/animations';
 import { AlgoPickers } from './AlgoPickers';
-import { PlaybackControls } from './PlaybackControls';
 
 type Props = {
     className?: string;
@@ -15,17 +15,11 @@ type Props = {
 
 export const Toolbar = ({ className, algo, maze }: Props) => {
     return (
-        <div className={`${className} w-full bg-primary`}>
-            <div className="px-10 w-full flex items-center gap-10">
-                <div className="py-3 text-white text-2xl font-semibold tracking-tight">AlgoViz</div>
-                <div className="w-full px-3 flex flex-1 items-center justify-between gap-3">
-                    <div className="flex flex-1 items-center gap-2">
-                        <AlgoPickers algo={algo} maze={maze} />
-                    </div>
-
-                    <PlaybackControls algo={algo} />
-                </div>
+        <header className={`${className} bg-primary flex items-center gap-6 px-6`}>
+            <div className="py-3 text-white text-2xl font-semibold tracking-tight">AlgoViz</div>
+            <div className="flex items-center gap-2">
+                <AlgoPickers algo={algo} maze={maze} />
             </div>
-        </div>
+        </header>
     );
 };
