@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { useGridStore } from '@/features/store';
 import { CellKind } from '@/types/grid';
-import { COLS, ROWS } from '@/utils/constants';
+import { CELL_SIZE, COL_PRESETS, COLS, MAX_CELL, MIN_CELL, MIN_ROWS, ROWS } from '@/utils/constants';
+import { initGrid } from '@/utils/grid';
 
 const api = () => useGridStore.getState();
 
@@ -97,44 +98,83 @@ describe('useGridStore', () => {
         });
     });
 
-    describe('setDimensions', () => {
-        it('resizes and clears the grid', () => {
+    describe('reset', () => {
+        const layout = { rows: MIN_ROWS, cols: COL_PRESETS[0], cellSize: MIN_CELL };
+        const resetTo = () => api().reset(layout.rows, layout.cols, layout.cellSize);
+
+        it('builds an empty grid of the given size', () => {
             api().setCell(0, 0, CellKind.wall);
-            api().setDimensions(10, 12);
-            expect(api().rows).toBe(10);
-            expect(api().cols).toBe(12);
-            expect(api().cells).toHaveLength(120);
+            resetTo();
+            expect(api()).toMatchObject(layout);
+            expect(api().cells).toHaveLength(layout.rows * layout.cols);
             expect(api().cells.every((k) => k === CellKind.empty)).toBe(true);
         });
 
-        it('clamps dimensions to 2..300', () => {
-            api().setDimensions(1, 1000);
-            expect(api().rows).toBe(2);
-            expect(api().cols).toBe(300);
-        });
-
-        it('keeps markers inside the new bounds', () => {
-            api().setDimensions(5, 5);
-            expect(api().validStart()).toBe(true);
-            expect(api().validGoal()).toBe(true);
-        });
-
-        it('separates markers that would collapse onto the same cell', () => {
+        it('places start and goal for the new size, as initGrid does', () => {
             api().setStart(0, 0);
-            api().setGoal(0, 1);
-            useGridStore.setState({ goal: { r: 0, c: 0 } });
-            api().setDimensions(2, 2);
-            expect(api().goal).not.toEqual(api().start);
+            resetTo();
+            const expected = initGrid(layout.rows, layout.cols, layout.cellSize);
+            expect(api().start).toEqual(expected.start);
+            expect(api().goal).toEqual(expected.goal);
+        });
+
+        it('restores the default grid when called without a size', () => {
+            resetTo();
+            api().reset();
+            expect(api()).toMatchObject({ rows: ROWS, cols: COLS, cellSize: CELL_SIZE });
+        });
+
+        it('releases the grid lock', () => {
+            api().setGridLock(true);
+            api().reset();
+            expect(api().gridLock).toBe(false);
+        });
+
+        // runners are cached by the gridVersion they were built from; restarting at 0 would let a
+        // runner built for the old grid look current
+        it('bumps gridVersion instead of restarting it', () => {
+            api().refresh();
+            const version = api().gridVersion;
+            api().reset();
+            expect(api().gridVersion).toBe(version + 1);
         });
     });
 
-    it('setCellSize clamps to 8..64', () => {
-        api().setCellSize(2);
-        expect(api().cellSize).toBe(8);
-        api().setCellSize(100);
-        expect(api().cellSize).toBe(64);
-        api().setCellSize(30);
-        expect(api().cellSize).toBe(30);
+    describe('resize', () => {
+        const otherSize = CELL_SIZE + 1; // CELL_SIZE is the default, so this always changes it
+
+        it('changes only the cell size: dimensions, walls and markers are kept', () => {
+            api().setCell(0, 0, CellKind.wall);
+            const { rows, cols, cells, start, goal } = api();
+            api().resize(otherSize);
+            expect(api()).toMatchObject({ cellSize: otherSize, rows, cols, cells, start, goal });
+        });
+
+        it('bumps gridVersion so a finished run repaints at the new size', () => {
+            const version = api().gridVersion;
+            api().resize(otherSize);
+            expect(api().gridVersion).toBe(version + 1);
+        });
+
+        it('is a no-op for the current size', () => {
+            const version = api().gridVersion;
+            api().resize(api().cellSize);
+            expect(api().gridVersion).toBe(version);
+        });
+
+        it('clamps to MIN_CELL..MAX_CELL', () => {
+            api().resize(MIN_CELL - 1);
+            expect(api().cellSize).toBe(MIN_CELL);
+            api().resize(MAX_CELL + 1);
+            expect(api().cellSize).toBe(MAX_CELL);
+        });
+
+        it('is a no-op for a size that clamps to the current one', () => {
+            api().resize(MIN_CELL);
+            const version = api().gridVersion;
+            api().resize(MIN_CELL - 1);
+            expect(api().gridVersion).toBe(version);
+        });
     });
 
     it('setGridLock toggles the lock', () => {
@@ -144,13 +184,10 @@ describe('useGridStore', () => {
         expect(api().gridLock).toBe(false);
     });
 
-    it('refresh bumps gridVersion; reset restores defaults', () => {
+    it('refresh bumps gridVersion', () => {
+        const version = api().gridVersion;
         api().refresh();
         api().refresh();
-        expect(api().gridVersion).toBe(2);
-        api().setCell(0, 0, CellKind.wall);
-        api().reset();
-        expect(api().gridVersion).toBe(0);
-        expect(api().at(0, 0)).toBe(CellKind.empty);
+        expect(api().gridVersion).toBe(version + 2);
     });
 });

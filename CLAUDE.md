@@ -67,7 +67,7 @@ src/
     hooks/useRaf.ts      Generic "coalesce into one rAF callback" hook
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
-  utils/                 Small pure helpers (grid init/snap, clamp, speed presets, constants)
+  utils/                 Small pure helpers (grid init/snap, grid sizing in layout.ts, clamp, speed presets, constants)
 tests/                   Mirrors src/ one-to-one (src/features/algo/bfs.ts → tests/features/algo/bfs.test.ts)
   setup.ts               jest-dom, canvas getContext stub, resets both Zustand stores before each test
   helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx

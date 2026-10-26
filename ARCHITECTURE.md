@@ -45,8 +45,8 @@ type Grid = {
 ```
 
 Plus derived helpers (`idx`, `inBounds`, `at`, `validStart`, `validGoal`) and mutators
-(`setDimensions`, `setCellSize`, `setCell`, `clearWalls`, `fillWalls`, `setStart`, `setGoal`,
-`setGridLock`, `refresh`, `reset`).
+(`setCell`, `clearWalls`, `fillWalls`, `setStart`, `setGoal`, `setGridLock`, `refresh`, `reset`,
+`resize`).
 
 Key behaviors baked into the mutators:
 - `setCell` refuses to overwrite the start/goal cell, and no-ops if the value is unchanged
@@ -56,11 +56,17 @@ Key behaviors baked into the mutators:
   refuse the move if it would collide with the other marker.
 - `setStart(-1,-1)` / `setGoal(-1,-1)` (negative coords) is the "no marker" sentinel used by
   `useMazeGenerator` to hide start/goal while carving.
-- `refresh()` is the manual dirty flag — most mutators don't bump `gridVersion` themselves;
+- `refresh()` is the manual dirty flag — most mutators (all but `reset`/`resize`) don't bump `gridVersion` themselves;
   callers (`CanvasGrid`'s pointer handlers) call `api.refresh()` after a batch of `setCell`
   calls so a drag-paint doesn't trigger one version bump per cell.
-- `setDimensions` clamps rows/cols to `[2,300]`, clamps existing start/goal into the new
-  bounds, and nudges goal off start if a resize collapsed them onto the same cell.
+- `reset(rows?, cols?, cellSize?)` builds a fresh empty grid via `initGrid` (start/goal re-placed
+  for the new size; no arguments = the `utils/constants.ts` defaults). It **bumps** `gridVersion`
+  rather than restarting at 0: runners are cached by the version they were built from, so a
+  restart could make a runner built for the old grid look current.
+- `resize(cellSize)` changes only the drawn cell size (dimensions, walls and markers are kept),
+  clamped to `[MIN_CELL, MAX_CELL]`. It bumps `gridVersion` so a finished run is re-solved and
+  repainted at the new size, and is a no-op when the clamped size equals the current one.
+  Rows/cols are only ever chosen by `reset`; the grid dimensions are not user-configurable.
 
 `GridSnapShot` (= `Grid`, no methods) is what gets handed to algorithms/mazes — a frozen,
 plain-data copy so a generator's view of the grid can't be mutated mid-run by further

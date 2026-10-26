@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import { CellKind, GridState } from '@/types/grid';
 import { initGrid, nearestEmptyCell } from '@/utils/grid';
 import { clamp } from '@/utils/common';
+import { MAX_CELL, MIN_CELL } from '@/utils/constants';
 
 export const useGridStore = create<GridState>((set, get) => {
     const g = initGrid();
@@ -28,32 +29,6 @@ export const useGridStore = create<GridState>((set, get) => {
         setGridLock: (flag) => {
             set(() => ({ gridLock: flag }));
         },
-
-        setDimensions: (R, C) =>
-            set((s: GridState) => {
-                const rows = clamp(R, 2, 300);
-                const cols = clamp(C, 2, 300);
-
-                const cells: CellKind[] = Array(rows * cols).fill(CellKind.empty);
-
-                const start = {
-                    r: clamp(s.start.r, 0, rows - 1),
-                    c: clamp(s.start.c, 0, cols - 1),
-                };
-                let goal = {
-                    r: clamp(s.goal.r, 0, rows - 1),
-                    c: clamp(s.goal.c, 0, cols - 1),
-                };
-
-                if (start.r === goal.r && start.c === goal.c) {
-                    const altC = clamp(goal.c + 1, 0, cols - 1);
-                    goal = { r: goal.r, c: altC === start.c ? clamp(goal.c - 1, 0, cols - 1) : altC };
-                }
-
-                return { rows, cols, cells, start, goal };
-            }),
-
-        setCellSize: (px) => set({ cellSize: clamp(px, 8, 64) }),
 
         setCell: (r, c, kind) =>
             set((s: GridState) => {
@@ -110,7 +85,19 @@ export const useGridStore = create<GridState>((set, get) => {
             return s.inBounds(s.goal.r, s.goal.c);
         },
 
+        reset: (rows, cols, cellSize) =>
+            set((s) => {
+                const grid = initGrid(rows, cols, cellSize);
+                grid.gridVersion = s.gridVersion + 1;
+                return grid;
+            }),
+
+        resize: (cellSize) =>
+            set((s) => {
+                const finalCellSize = clamp(cellSize, MIN_CELL, MAX_CELL);
+                return s.cellSize === finalCellSize ? {} : { cellSize: finalCellSize, gridVersion: s.gridVersion + 1 };
+            }),
+
         refresh: () => set((s) => ({ gridVersion: s.gridVersion + 1 })),
-        reset: () => set(initGrid()),
     };
 });

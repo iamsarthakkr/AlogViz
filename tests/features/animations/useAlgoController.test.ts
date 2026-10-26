@@ -15,7 +15,7 @@ const registry = { BFS: bfs, DFS: dfs };
 // 5x5 open grid, start (2,0) → goal (2,4): shortest path is 5 cells
 function setupGrid() {
     const api = useGridStore.getState();
-    api.setDimensions(5, 5);
+    api.reset(5, 5);
     api.setStart(2, 0);
     api.setGoal(2, 4);
 }

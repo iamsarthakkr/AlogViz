@@ -18,8 +18,7 @@ describe('CanvasGrid', () => {
         raf = installFakeRaf();
         // jsdom has no pointer capture; the component logs and carries on
         vi.spyOn(console, 'error').mockImplementation(() => {});
-        api().setDimensions(5, 8);
-        api().setCellSize(CELL);
+        api().reset(5, 8, CELL);
         api().setStart(2, 1);
         api().setGoal(2, 6);
     });

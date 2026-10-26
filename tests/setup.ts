@@ -18,7 +18,8 @@ HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement) {
 
 // Both stores are module singletons, so state would otherwise leak between tests.
 beforeEach(() => {
-    useGridStore.getState().reset();
+    // not reset(): it bumps gridVersion, which would carry over from test to test
+    useGridStore.setState(useGridStore.getInitialState(), true);
     useSettingsStore.setState(useSettingsStore.getInitialState(), true);
 });
 
