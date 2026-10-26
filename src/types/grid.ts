@@ -56,3 +56,5 @@ export type GridState = Grid & {
 };
 
 export type GridSnapShot = Grid;
+
+export type GridLayout = Pick<Grid, 'rows' | 'cols' | 'cellSize'>;
