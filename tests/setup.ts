@@ -16,6 +16,14 @@ HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement) {
     return ctx;
 } as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
+// jsdom has no ResizeObserver; this no-op lets the page mount. Tests that need resizes
+// use installFakeResizeObserver() from helpers/resize.ts instead.
+globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+};
+
 // Both stores are module singletons, so state would otherwise leak between tests.
 beforeEach(() => {
     // not reset(): it bumps gridVersion, which would carry over from test to test
