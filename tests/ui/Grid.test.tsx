@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Grid from '@/ui/Grid';
 import { useGridStore } from '@/features/store';
 import { lightPalette } from '@/features/painters';
+import { mazesLabels } from '@/features/mazes';
+import { CellKind } from '@/types/grid';
 import { MockCtx } from '../helpers/canvas';
 import { installFakeRaf } from '../helpers/raf';
+import { seedRandom } from '../helpers/random';
 
 const callOrder = (fn: unknown) => vi.mocked(fn as () => void).mock.invocationCallOrder;
 
@@ -53,5 +56,52 @@ describe('Grid page', () => {
         act(() => void raf.flush());
 
         expect(pathOnScreen(overlay)).toHaveLength(expectedPathLength());
+    });
+
+    // The toolbar and the canvas share the one controller the page owns
+    describe('controls driving the real controller', () => {
+        const button = (name: string) => screen.getByRole('button', { name });
+
+        it('locks the grid while running, then unlocks and re-enables the controls when done', async () => {
+            render(<Grid />);
+            const user = userEvent.setup();
+
+            await user.click(button('Visualize'));
+            expect(button('Visualize')).toBeDisabled();
+            expect(button('Pause')).toBeInTheDocument();
+            expect(useGridStore.getState().gridLock).toBe(true);
+
+            act(() => void raf.flush());
+            expect(button('Visualize')).toBeEnabled();
+            expect(button('Step')).toBeInTheDocument();
+            expect(useGridStore.getState().gridLock).toBe(false);
+        });
+
+        it('pausing a run gives the Step button back and unlocks the grid', async () => {
+            render(<Grid />);
+            const user = userEvent.setup();
+
+            await user.click(button('Visualize'));
+            await user.click(button('Pause'));
+            expect(button('Step')).toBeInTheDocument();
+            expect(button('Visualize')).toBeEnabled();
+            expect(useGridStore.getState().gridLock).toBe(false);
+        });
+
+        it('generates a maze into the grid', async () => {
+            seedRandom(3);
+            render(<Grid />);
+            const user = userEvent.setup();
+            const maze = mazesLabels[0];
+
+            await user.click(within(button('Mazes & Patterns').parentElement!).getByText(maze));
+            expect(useGridStore.getState().gridLock).toBe(true);
+
+            act(() => void raf.flush());
+            const { cells, gridLock, validStart, validGoal } = useGridStore.getState();
+            expect(gridLock).toBe(false);
+            expect(cells).toContain(CellKind.wall);
+            expect(validStart() && validGoal()).toBe(true);
+        });
     });
 });

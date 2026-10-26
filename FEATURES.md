@@ -108,7 +108,7 @@ While an algorithm is selected/running, `useAlgoController` tracks and exposes:
 - `status` — `idle | ready | running | paused | done`.
 
 These are currently computed and available on the controller but not all surfaced in the
-toolbar UI (`AlgoControls.tsx` reads `status` and `speed` for button state/labels; `pathLen`
+toolbar UI (`PlaybackControls.tsx` reads `status` for button state and `speed` for its label; `pathLen`
 and `visitedApprox` are plumbed through but not currently rendered as visible text anywhere).
 
 ## 6. Responsive canvas rendering (crisp at any zoom/DPI)

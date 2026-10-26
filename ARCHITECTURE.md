@@ -8,25 +8,39 @@ feature-level behavior.
 
 ```
 main.tsx → App.tsx
-  └─ ui/Grid.tsx
-       ├─ Toolbar (ctx = ref to CanvasGrid)
-       │    └─ AlgoControls (ctx)
-       │         ├─ Dropdown (algorithm select)
-       │         ├─ Dropdown (maze/pattern select)
+  └─ ui/Grid.tsx   (owns: gridRef, useAlgoController, useMazeGenerator, useResponsiveGrid)
+       ├─ Toolbar (algo, maze)
+       │    ├─ AlgoPickers (algo, maze)
+       │    │    ├─ Dropdown (algorithm select)
+       │    │    └─ Dropdown (maze/pattern select)
+       │    └─ PlaybackControls (algo)
        │         ├─ Visualize / Pause / Step buttons
        │         ├─ Clear path button
        │         └─ Dropdown (speed select)
-       └─ CanvasGrid (forwardRef → CanvasGridHandle)
-            └─ CanvasStage (forwardRef → CanvasStageHandle)
-                 ├─ <canvas> base   (useCanvasLayer)
-                 └─ <canvas> overlay (useCanvasLayer)
+       └─ grid box (flex-1 min-h-0, measured by useResponsiveGrid)
+            └─ CanvasGrid (forwardRef → CanvasGridHandle)
+                 └─ CanvasStage (forwardRef → CanvasStageHandle)
+                      ├─ <canvas> base   (useCanvasLayer)
+                      └─ <canvas> overlay (useCanvasLayer)
 ```
 
-`ui/Grid.tsx` holds a single `gridRef` (`useRef<CanvasGridHandle>`) and passes it to both
-`Toolbar` and `CanvasGrid`. This ref is the *only* wiring between the toolbar's controls and
-the canvas — there is no prop/callback chain for draw commands. `AlgoControls` forwards the
-same ref into `useAlgoController(ctx, algorithms)`, which uses
-`ctx.current.getOverlayCtx()` / `clearOverlay()` to paint directly.
+`ui/Grid.tsx` is the nearest common parent of everything that drives or shows a run, so it owns
+the **one** algorithm controller (`useAlgoController(gridRef, algorithms, …)`) and maze
+generator and passes them down as props (`algo`, `maze`). There must be exactly one instance:
+calling the hook in two components would create two independent controllers with separate
+runners. Plain props rather than Context or a store: the tree is one or two levels deep, and
+the controller is a hook bound to a component lifecycle (refs, effects, rAF), not plain data.
+
+The `gridRef` (`useRef<CanvasGridHandle>`) goes only to `CanvasGrid` and to the controller,
+which uses `gridRef.current.getOverlayCtx()` / `clearOverlay()` to paint the overlay directly.
+The toolbar never touches the canvas; it only calls the controller's public API. Because the
+controller arrives as a prop, the toolbar components are tested with a fake controller
+(`tests/helpers/controllers.ts`).
+
+Re-render cost: controller state (e.g. `visitedApprox`, updated on every visit event) lives in
+`GridPage`, so a running algorithm re-renders the whole page each frame. Its children's effects
+don't re-run (their deps are unchanged) and the overlay is painted imperatively, but keep
+anything expensive out of that render path (or `memo` it).
 
 ## 2. State management
 
@@ -112,7 +126,7 @@ talks to:
   clears and repaints the overlay itself (see §7). A separate overlay clear here would run a
   frame later and wipe the repainted path.
 - Exposes `CanvasGridHandle` (`getBaseCtx`, `getOverlayCtx`, `clearOverlay`, `redrawBase`) via
-  `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and passes to `Toolbar`.
+  `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and hands to `useAlgoController`.
 - Owns all pointer interaction (see §5).
 
 ### Painters (`features/painters/`) — pure drawing functions, no state
@@ -270,13 +284,13 @@ Sequence on `generate(key)`:
    start/goal coordinates (re-snapped through `setStart`/`setGoal`'s nearest-empty-cell logic
    if the maze happened to wall over them), unlock the grid, and `refresh()`.
 5. `runnerRef.current.play()` — maze generation always autoplays (no pause/step controls are
-   wired to it from the toolbar; `AlgoControls.onGenerateMaze` also calls
+   wired to it from the toolbar; `AlgoPickers.onGenerateMaze` also calls
    `algoController.clear()` first so a stale path overlay doesn't linger under the new maze).
 
 ## 9. Pointer interaction (`CanvasGrid`)
 
 Single-pointer state machine via `DragMode` (`None | Paint | MoveStart | MoveGoal`), driven
-by native Pointer Events (`onPointerDown/Move/Up/Leave`) with `setPointerCapture` so drags
+by native Pointer Events (`onPointerDown/Move/Up/Leave/Cancel`) with `setPointerCapture` so drags
 tracked outside the canvas bounds still deliver move events.
 
 - `hitCell(e)`: converts client coords to `{r,c}` via the wrapper's bounding rect and
@@ -287,7 +301,9 @@ tracked outside the canvas bounds still deliver move events.
 - `onPointerMove`: continues painting or dragging the active marker per `dragMode`, calling
   `api.refresh()` after every move to bump `gridVersion` (this is what invalidates cached
   algorithm runners live, mid-drag).
-- `onPointerUp`/`onPointerLeave`: releases pointer capture, resets `dragMode` to `None`.
+- `onPointerUp`/`onPointerLeave`/`onPointerCancel`: releases pointer capture, resets `dragMode`
+  to `None` (cancel: the browser or OS took over the gesture, so no `pointerup` will follow).
+- The wrapper sets `touch-action: none`, so a touch drag paints instead of scrolling the page.
 - `paintAt`: guards bounds and refuses to paint over the start/goal cell; no-ops if the cell
   is already the target kind (avoids redundant store writes during a drag).
 - Right-click context menu is suppressed (`onContextMenu` → `preventDefault`) since
@@ -295,7 +311,7 @@ tracked outside the canvas bounds still deliver move events.
 
 ## 10. End-to-end flow: clicking "Visualize"
 
-1. `AlgoControls`'s Visualize button calls `algoController.play()`.
+1. `PlaybackControls`'s Visualize button calls `algo.play()` on the controller `GridPage` owns.
 2. `play()` → `getOrCreateCurrent()`: if no cached runner for `algoKey`, or the grid changed
    since it was built, or it already finished, build a fresh one via `createRunnerFor`.
 3. `createRunnerFor`: pauses whatever runner was "current", snapshots the grid

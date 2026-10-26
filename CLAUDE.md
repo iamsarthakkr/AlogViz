@@ -54,7 +54,7 @@ src/
   main.tsx             Entry: fonts, index.css, renders <App /> in StrictMode
   App.tsx              Root component (just renders ui/Grid)
   index.css            Tailwind + daisyUI setup, theme tokens
-  ui/Grid.tsx           Top-level page composition: Toolbar + CanvasGrid
+  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator, sizes the grid box; Toolbar + CanvasGrid
   components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
   features/
     store/               Zustand stores: useGridStore (grid data), useSettingsStore (UI state)
@@ -63,8 +63,8 @@ src/
     algo/                Pathfinding algorithms as generator functions (bfs, dfs, dijkstra, ...)
     mazes/               Maze/pattern generators as generator functions (prims, recursiveDivision, ...)
     animations/          The generator "runner" (rAF playback engine) + hooks that drive algo/maze runs
-    Toolbar/             Algorithm/maze dropdowns, play/pause/step/clear, speed control
-    hooks/useRaf.ts      Generic "coalesce into one rAF callback" hook
+    Toolbar/             AlgoPickers (algorithm/maze dropdowns), PlaybackControls (play/pause/step/clear, speed)
+    hooks/               useRaf (coalesce into one rAF callback), useResponsiveGrid (sizes the grid to its box)
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
   utils/                 Small pure helpers (grid init/snap, grid sizing in layout.ts, clamp, speed presets, constants)
