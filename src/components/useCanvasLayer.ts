@@ -4,13 +4,13 @@
 // - Sets CSS size (logical px) vs canvas.width/height (physical px) separately
 // - Applies the DPR transform once so callers draw in logical coordinates
 
-import { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 export function useCanvasLayer(rows: number, cols: number, cellSize: number) {
     const ref = useRef<HTMLCanvasElement>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
-    useEffect(() => {
+    React.useLayoutEffect(() => {
         const cv = ref.current!;
         const dpr = window.devicePixelRatio || 1;
         cv.style.width = `${cols * cellSize}px`;

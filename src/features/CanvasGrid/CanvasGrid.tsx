@@ -43,7 +43,6 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
     const brushRef = useRef<Brush>(Brush.Wall);
 
     const schedule = useRaf();
-    const scheduleOverlay = useRaf();
 
     // ----- expose API to parent -----
     useImperativeHandle(
@@ -74,12 +73,6 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
             drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal, api.validStart(), api.validGoal());
         });
     }, [rows, cols, cellSize, cells, start, goal, schedule]);
-
-    useEffect(() => {
-        const ctx = stageRef.current?.getOverlayCtx();
-        if (!ctx) return;
-        scheduleOverlay(() => clearOverlay(ctx, rows, cols, cellSize));
-    }, [rows, cols, cellSize, scheduleOverlay]);
 
     // hit testing
     const hitCell = useCallback(

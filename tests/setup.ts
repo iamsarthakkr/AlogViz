@@ -16,6 +16,22 @@ HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement) {
     return ctx;
 } as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
+// A real canvas wipes its pixels whenever width or height is assigned. Record that as a clearRect on
+// the mock context, so tests can see when resizing a canvas erases what was painted on it.
+for (const dimension of ['width', 'height'] as const) {
+    const native = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, dimension)!;
+    Object.defineProperty(HTMLCanvasElement.prototype, dimension, {
+        configurable: true,
+        get(this: HTMLCanvasElement) {
+            return native.get!.call(this);
+        },
+        set(this: HTMLCanvasElement, value: number) {
+            native.set!.call(this, value);
+            this.getContext('2d')!.clearRect(0, 0, this.width, this.height);
+        },
+    });
+}
+
 // jsdom has no ResizeObserver; this no-op lets the page mount. Tests that need resizes
 // use installFakeResizeObserver() from helpers/resize.ts instead.
 globalThis.ResizeObserver = class {

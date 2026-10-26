@@ -172,6 +172,55 @@ describe('useAlgoController', () => {
         expect(result.current.pathLen).toBe(7);
     });
 
+    // A resize bumps gridVersion (the overlay was wiped and the snapshot's cellSize is stale), so a
+    // running run is abandoned. play() took the grid lock, so the rebuild must give it back.
+    describe('when the grid is resized', () => {
+        const resize = () => act(() => useGridStore.getState().resize(useGridStore.getState().cellSize + 1));
+
+        it('re-solves a finished run instantly at the new size', () => {
+            const { result } = render();
+            act(() => result.current.skipToEnd());
+            resize();
+            expect(result.current.status).toBe('done');
+            expect(result.current.pathLen).toBe(5);
+        });
+
+        it('stops a running run and releases the grid lock it took', () => {
+            const { result } = render();
+            act(() => result.current.play());
+            act(() => raf.frame());
+            expect(result.current.status).toBe('running');
+            expect(useGridStore.getState().gridLock).toBe(true);
+
+            resize();
+            expect(result.current.status).toBe('ready');
+            expect(result.current.pathLen).toBeNull();
+            expect(useGridStore.getState().gridLock).toBe(false);
+        });
+
+        it('can be played again after a run was stopped by a resize', () => {
+            const { result } = render();
+            act(() => result.current.play());
+            act(() => raf.frame());
+            resize();
+
+            act(() => result.current.play());
+            flush();
+            expect(result.current.status).toBe('done');
+            expect(result.current.pathLen).toBe(5);
+        });
+
+        // gridLock is shared with the maze generator: a resize mid-maze must not let the user paint
+        it('does not release a lock held by someone else (maze generation)', () => {
+            const { result } = render();
+            act(() => result.current.clear()); // leaves a cached, idle runner, as onGenerateMaze does
+            act(() => useGridStore.getState().setGridLock(true));
+
+            resize();
+            expect(useGridStore.getState().gridLock).toBe(true);
+        });
+    });
+
     it('rebuilds (without solving) when the grid changes mid-run', () => {
         const { result } = render();
         act(() => result.current.step());
