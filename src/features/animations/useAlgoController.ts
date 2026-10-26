@@ -185,10 +185,14 @@ export function useAlgoController(
     useEffect(() => {
         const current = runners.current.get(currentKeyRef.current);
         if (current && current.buildVersion !== gridVersion) {
+            const wasRunning = current.runner.getStatus() === AlgoStatus.running;
+            const wasDone = current.runner.getStatus() === AlgoStatus.done;
             current.runner.pause();
-            const instant = current.runner.getStatus() === AlgoStatus.done;
-            const r = createRunnerFor(currentKeyRef.current, instant);
-            if (instant) {
+            const r = createRunnerFor(currentKeyRef.current, wasDone);
+            if (wasRunning) {
+                useGridStore.getState().setGridLock(false);
+            }
+            if (wasDone) {
                 r?.skipToEnd();
             }
         }

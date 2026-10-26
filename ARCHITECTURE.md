@@ -94,18 +94,23 @@ across renders without forcing re-renders:
 
 `components/useCanvasLayer.ts` is the low-level hook: given `rows/cols/cellSize`, it sizes a
 `<canvas>` for devicePixelRatio (`ctx.setTransform(dpr,0,0,dpr,0,0)`, disables image
-smoothing for crisp cell edges) and exposes `getCtx()`. `components/CanvasStage.tsx` stacks
+smoothing for crisp cell edges) and exposes `getCtx()`. It sizes the canvas in a
+**`useLayoutEffect`**: assigning `canvas.width` wipes its pixels, and layout effects run before
+every passive effect, so the canvas is resized first and the algorithm controller's
+`useEffect` then repaints onto the resized canvas (with a plain `useEffect` the resize would
+run after the repaint and erase a finished path). `components/CanvasStage.tsx` stacks
 two of these — `base` (pointer-events auto) and `overlay` (`pointer-events: none`,
 absolutely positioned on top) — and exposes both contexts via `useImperativeHandle`.
 
 `features/CanvasGrid/CanvasGrid.tsx` owns a `CanvasStage` and is the thing everything else
 talks to:
 - Subscribes to `useGridStore` with `useShallow` for `[rows, cols, cellSize, cells, start, goal]`.
-- Two `useEffect`s, each debounced through `useRaf()` (coalesces multiple state changes
-  within one animation frame into a single draw call):
-  1. redraw the **base** layer via `painters.drawBaseScene(...)` whenever grid data changes.
-  2. **clear** the overlay layer whenever grid *dimensions* change (`rows/cols/cellSize` —
-     note this effect's deps are narrower than the base-redraw effect's).
+- One `useEffect`, debounced through `useRaf()` (coalesces multiple state changes within one
+  animation frame into a single draw call), redraws the **base** layer via
+  `painters.drawBaseScene(...)` whenever grid data changes. It does **not** touch the overlay:
+  every dimension change (`reset`/`resize`) bumps `gridVersion`, and the controller's rebuild
+  clears and repaints the overlay itself (see §7). A separate overlay clear here would run a
+  frame later and wipe the repainted path.
 - Exposes `CanvasGridHandle` (`getBaseCtx`, `getOverlayCtx`, `clearOverlay`, `redrawBase`) via
   `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and passes to `Toolbar`.
 - Owns all pointer interaction (see §5).
@@ -230,6 +235,11 @@ This is the biggest piece of glue. Responsibilities:
   the old runner had already finished (`AlgoStatus.done`), the rebuild is played back
   **instantly** (`instant=true` → `drawPathInstant` + `r.skipToEnd()`) so editing the grid
   after a completed run doesn't require re-clicking Visualize to see the corrected path.
+  If the old runner was **running** (e.g. the grid was resized mid-run), the run is abandoned:
+  the rebuild leaves status `'ready'` and the controller releases `gridLock`, which `play()`
+  took. It releases the lock only in that case, because `gridLock` is shared with the maze
+  generator, and a resize mid-maze must not let the user paint over a half-carved maze. The
+  runner's status is read *before* `pause()`, since pausing a running runner changes it.
 - **Event → paint wiring** (`getEventHandler`): grabs the overlay ctx once per snapshot, and
   returns a closure that calls `paintAlgoEvent` for every event, tracks `visitedApprox`
   (incremented on `visit`), and on the terminal `path` event: sets `pathLen`, unlocks the
