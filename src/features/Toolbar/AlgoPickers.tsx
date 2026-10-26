@@ -34,12 +34,23 @@ export const AlgoPickers = ({ algo, maze }: Props) => {
 
     return (
         <>
-            <Dropdown title={algoKey} options={algoLabels} onSelect={onAlgoChange} className="w-50 font-semibold" />
             <Dropdown
-                title={'Mazes & Patterns'}
+                title={algoKey}
+                options={algoLabels}
+                onSelect={onAlgoChange}
+                className="flex-1 min-w-0 xl:flex-none xl:w-50 font-semibold"
+            />
+            <Dropdown
+                title={
+                    <>
+                        <span className="xl:hidden">Mazes</span>
+                        <span className="hidden xl:inline">Mazes & Patterns</span>
+                    </>
+                }
+                label="Mazes & Patterns"
                 options={mazesLabels}
                 onSelect={onGenerateMaze}
-                className="w-50 font-semibold"
+                className="flex-1 min-w-0 xl:flex-none xl:w-50 font-semibold"
             />
         </>
     );

@@ -13,11 +13,11 @@ type Props = {
     maze: MazeGeneratorApi;
 };
 
-export const Toolbar = ({ className, algo, maze }: Props) => {
+export const Toolbar = ({ className = '', algo, maze }: Props) => {
     return (
-        <header className={`${className} bg-primary flex items-center gap-6 px-6`}>
-            <div className="py-3 text-white text-2xl font-semibold tracking-tight">AlgoViz</div>
-            <div className="flex items-center gap-2">
+        <header className={`${className} bg-primary flex items-center gap-3 px-4 xl:gap-6 xl:px-6`}>
+            <div className="shrink-0 py-3 text-white text-lg xl:text-2xl font-semibold tracking-tight">AlgoViz</div>
+            <div className="flex flex-1 min-w-0 items-center gap-2 xl:flex-none">
                 <AlgoPickers algo={algo} maze={maze} />
             </div>
         </header>

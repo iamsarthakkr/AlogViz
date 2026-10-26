@@ -40,11 +40,21 @@ body {
     grid-template-rows: auto minmax(0, 1fr) auto auto auto;
     grid-template-areas: 'header' 'grid' 'stats' 'legend' 'controls';
 
-    @variant lg {
-        grid-template-columns: 15rem minmax(0, 1fr) 15rem;
+    /* Desktop starts at xl (1280px), the narrowest width where the one-row top bar (title, pickers,
+       controls ≈ 1130px) fits; below it the stacked layout is used. Components switch with the same
+       xl: prefix, so there is one "desktop" breakpoint everywhere. */
+    @variant xl {
+        /* - Panels (columns 1 and 4) scale with the window (16vw, 9-15rem) so the grid keeps most of
+             the width. Never size them by their content: stats change during a run, and a moving
+             panel resizes the grid mid-run.
+           - Column 3 is `auto`, sized by the controls, so the top bar doesn't depend on the panel
+             width. Safe only because every control has a fixed xl: width (Step/Pause and the speed
+             label swapping never change it). The grid spans columns 2-3, so its width is still the
+             window minus the two panels. */
+        grid-template-columns: clamp(9rem, 16vw, 15rem) minmax(0, 1fr) auto clamp(9rem, 16vw, 15rem);
         grid-template-rows: auto minmax(0, 1fr);
         grid-template-areas:
-            'header header controls'
-            'legend grid   stats';
+            'header header controls controls'
+            'legend grid   grid     stats';
     }
 }

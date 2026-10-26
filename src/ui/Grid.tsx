@@ -53,7 +53,7 @@ export default function GridPage() {
             <Stats className="[grid-area:stats] p-4" />
             <Legend className="[grid-area:legend] p-4" />
 
-            <div className="[grid-area:controls] bg-primary flex items-center justify-end gap-2 px-4 py-2">
+            <div className="[grid-area:controls] bg-primary flex items-center px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] xl:justify-end xl:py-2">
                 <PlaybackControls algo={algoController} />
             </div>
         </div>
