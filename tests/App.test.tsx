@@ -4,9 +4,9 @@ import App from '@/App';
 
 describe('App', () => {
     it('renders the visualizer: toolbar plus the two grid canvases', () => {
-        const { container } = render(<App />);
+        render(<App />);
         expect(screen.getByText('AlgoViz')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Visualize' })).toBeInTheDocument();
-        expect(container.querySelectorAll('canvas')).toHaveLength(2);
+        expect(screen.getByRole('main').querySelectorAll('canvas')).toHaveLength(2);
     });
 });

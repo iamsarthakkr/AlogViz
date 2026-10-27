@@ -102,6 +102,17 @@ describe('CanvasGrid', () => {
         expect([api().at(0, 0), api().at(0, 1), api().at(0, 2)]).toEqual(Array(3).fill(CellKind.wall));
     });
 
+    // cells are a flat array, so (r, cols) would read (r + 1, 0): a wall there must not pick the eraser
+    it('a drag starting just past the right edge draws, even if the next row starts with a wall', () => {
+        const { cols } = api();
+        api().setCell(1, 0, CellKind.wall);
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, cols));
+        fireEvent.pointerMove(surface, at(0, cols - 1));
+
+        expect(api().at(0, cols - 1)).toBe(CellKind.wall);
+    });
+
     it('drags the start and goal markers instead of painting over them', () => {
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(2, 1));

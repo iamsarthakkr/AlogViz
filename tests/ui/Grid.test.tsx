@@ -58,8 +58,8 @@ describe('Grid page', () => {
     });
 
     const renderAndVisualize = async () => {
-        const { container } = render(<Grid />);
-        const overlay = container.querySelectorAll('canvas')[1].getContext('2d') as unknown as MockCtx;
+        render(<Grid />);
+        const overlay = screen.getByRole('main').querySelectorAll('canvas')[1].getContext('2d') as unknown as MockCtx;
 
         await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
         act(() => void raf.flush());

@@ -1,7 +1,8 @@
 // Authored by - Sarthak Kumar
 //
 // CanvasGrid: the interactive grid surface — owns pointer input and base-layer redraws.
-// - Pointer handlers: paint walls (left=wall, right/alt=erase), drag start/goal markers
+// - Pointer handlers: paint walls, drag start/goal markers. A drag erases if it starts on a wall
+//   (so touch can erase) or uses right-click/Alt; the brush is fixed for the whole drag
 // - Redraws the base canvas via drawBaseScene whenever grid state changes (debounced via useRaf)
 // - Exposes CanvasGridHandle (ctx getters, clearOverlay, redrawBase) for the toolbar/animation hooks
 // - Respects gridLock: pointer editing is a no-op while an algorithm/maze run owns the grid
@@ -120,7 +121,7 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
             } else if (r === api.goal.r && c === api.goal.c) {
                 dragMode.current = DragMode.MoveGoal;
             } else {
-                const startsOnWall = api.at(r, c) === CellKind.wall;
+                const startsOnWall = api.inBounds(r, c) && api.at(r, c) === CellKind.wall;
                 dragMode.current = DragMode.Paint;
                 brushRef.current = e.button === 2 || e.altKey || startsOnWall ? Brush.Erase : Brush.Wall;
                 paintAt(r, c);

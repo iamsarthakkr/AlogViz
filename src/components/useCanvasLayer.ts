@@ -23,5 +23,7 @@ export function useCanvasLayer(rows: number, cols: number, cellSize: number) {
         ctxRef.current = ctx;
     }, [rows, cols, cellSize]);
 
-    return { ref, getCtx: () => ctxRef.current };
+    const getCtx = React.useCallback(() => ctxRef.current, []);
+
+    return { ref, getCtx };
 }
