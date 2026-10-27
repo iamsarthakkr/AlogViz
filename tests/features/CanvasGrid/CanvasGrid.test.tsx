@@ -68,6 +68,40 @@ describe('CanvasGrid', () => {
         expect(api().at(0, 1)).toBe(CellKind.empty);
     });
 
+    // touch has no right button or alt, so the cell a drag starts on picks the brush
+    describe('a drag that starts on a wall', () => {
+        it('erases, for the whole drag', () => {
+            [0, 1, 2].forEach((c) => api().setCell(0, c, CellKind.wall));
+            const { surface, at } = setup();
+            fireEvent.pointerDown(surface, at(0, 0));
+            fireEvent.pointerMove(surface, at(0, 1));
+            fireEvent.pointerMove(surface, at(0, 2));
+            fireEvent.pointerUp(surface, at(0, 2));
+
+            expect([api().at(0, 0), api().at(0, 1), api().at(0, 2)]).toEqual(Array(3).fill(CellKind.empty));
+        });
+
+        // the brush is picked once per drag, so crossing empty cells doesn't flip it to drawing
+        it('leaves empty cells it crosses empty', () => {
+            api().setCell(0, 0, CellKind.wall);
+            const { surface, at } = setup();
+            fireEvent.pointerDown(surface, at(0, 0));
+            fireEvent.pointerMove(surface, at(0, 1));
+
+            expect(api().at(0, 1)).toBe(CellKind.empty);
+        });
+    });
+
+    it('a drag that starts on an empty cell draws over walls it crosses', () => {
+        api().setCell(0, 1, CellKind.wall);
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, 0));
+        fireEvent.pointerMove(surface, at(0, 1));
+        fireEvent.pointerMove(surface, at(0, 2));
+
+        expect([api().at(0, 0), api().at(0, 1), api().at(0, 2)]).toEqual(Array(3).fill(CellKind.wall));
+    });
+
     it('drags the start and goal markers instead of painting over them', () => {
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(2, 1));

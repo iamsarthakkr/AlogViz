@@ -101,7 +101,9 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
 
     const onPointerDown = useCallback(
         (e: React.PointerEvent<HTMLDivElement>) => {
-            if (useGridStore.getState().gridLock) return;
+            const api = useGridStore.getState();
+            if (api.gridLock) return;
+
             e.preventDefault();
             const cv = e.currentTarget;
             try {
@@ -112,15 +114,15 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
             }
 
             const { r, c } = hitCell(e);
-            const s = useGridStore.getState();
 
-            if (r === s.start.r && c === s.start.c) {
+            if (r === api.start.r && c === api.start.c) {
                 dragMode.current = DragMode.MoveStart;
-            } else if (r === s.goal.r && c === s.goal.c) {
+            } else if (r === api.goal.r && c === api.goal.c) {
                 dragMode.current = DragMode.MoveGoal;
             } else {
+                const startsOnWall = api.at(r, c) === CellKind.wall;
                 dragMode.current = DragMode.Paint;
-                brushRef.current = e.button === 2 || e.altKey ? Brush.Erase : Brush.Wall;
+                brushRef.current = e.button === 2 || e.altKey || startsOnWall ? Brush.Erase : Brush.Wall;
                 paintAt(r, c);
             }
         },
