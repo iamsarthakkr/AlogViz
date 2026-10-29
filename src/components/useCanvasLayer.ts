@@ -3,14 +3,17 @@
 // useCanvasLayer: sizes a single <canvas> for devicePixelRatio and hands back its 2D ctx.
 // - Sets CSS size (logical px) vs canvas.width/height (physical px) separately
 // - Applies the DPR transform once so callers draw in logical coordinates
+// - Sizes in a layout effect: setting canvas.width wipes it, so it must happen before any passive
+//   effect repaints (see ARCHITECTURE.md §3)
+// - getCtx is stable (useCallback), so callers can put it in effect deps without redrawing every render
 
-import { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 export function useCanvasLayer(rows: number, cols: number, cellSize: number) {
     const ref = useRef<HTMLCanvasElement>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
-    useEffect(() => {
+    React.useLayoutEffect(() => {
         const cv = ref.current!;
         const dpr = window.devicePixelRatio || 1;
         cv.style.width = `${cols * cellSize}px`;
@@ -23,5 +26,7 @@ export function useCanvasLayer(rows: number, cols: number, cellSize: number) {
         ctxRef.current = ctx;
     }, [rows, cols, cellSize]);
 
-    return { ref, getCtx: () => ctxRef.current };
+    const getCtx = React.useCallback(() => ctxRef.current, []);
+
+    return { ref, getCtx };
 }

@@ -1,29 +1,35 @@
 // Authored by - Sarthak Kumar
 //
 // useAlgoController: orchestrates pathfinding algorithm playback for the toolbar.
-// - Caches one runner per algorithm key (Map), keyed with the grid version it was built from
-// - Invalidates/rebuilds a runner when the grid changes; instantly re-solves if it had finished
+// - Owns runs, not selections: the selected algorithm and speed preset live in useSettingsStore
+//   and are read from there (never copied), so the two can't drift apart
+// - Selected vs active: the active run is the one on screen. Changing the selection doesn't touch
+//   it; a run in progress finishes (and Pause still pauses it), and the selection is picked up the
+//   next time play/step/skipToEnd starts a run
+// - Keeps the active runner (Map keyed by algorithm), tagged with the grid version it was built from
+// - Invalidates/rebuilds the active run when the grid changes; instantly re-solves if it had finished
+// - Speed changes apply to the active runner immediately, and to every runner created after
 // - Wires runner events -> overlay canvas paints (paintAlgoEvent) and the final path animation
-// - Exposes status/pathLen/visitedApprox + play/pause/step/skipToEnd/clear controls
+// - Status comes only from the runner (onStatusChange); controls never set it themselves
+// - Exposes runAlgo (the active run's algorithm), status/pathLen/visitedApprox and
+//   play/pause/step/skipToEnd/clear controls
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Callback, Callback1 } from '@/types/common';
+import { Callback } from '@/types/common';
 import { AlgoStatus, type AlgoEvent, type PathFinder } from '@/types/algo';
 import type { CanvasGridHandle } from '@/features/CanvasGrid';
-import { useGridStore } from '@/features/store';
+import { useGridStore, useSettingsStore } from '@/features/store';
 import { paintAlgoEvent, animateFinalPath, drawMarkers } from '@/features/painters';
 
 import { createRunner, RunnerApi } from './runner';
 import { getGridSnapshot } from './utils';
 import { GridSnapShot } from '@/types/grid';
+import { speedToEPS } from '@/utils/settings';
 
 export type AlgoController = {
-    currentAlgo: string;
-    setAlgorithm: Callback1<string>;
-
-    status: string;
-    speed: number;
-    pathLen: number | null;
+    runAlgo: string;
+    status: AlgoStatus | undefined; // undefined until the first run is created (idle)
+    pathLen: number | undefined;
     visitedApprox: number;
 
     clear: Callback;
@@ -31,16 +37,11 @@ export type AlgoController = {
     pause: Callback;
     step: Callback;
     skipToEnd: Callback;
-    setSpeed: Callback1<number>;
-
-    recreate: Callback;
 };
 
 export type AlgoRegistry = Record<string, PathFinder>;
 
 type Options = {
-    initialAlgo?: string; // default: first key of registry
-    initialSpeed?: number; // EPS
     animatePath?: boolean; // default true (if false, path is drawn instantly)
     pathNps?: number; // nodes/sec for path trace if animating
 };
@@ -52,23 +53,29 @@ export function useAlgoController(
     registry: AlgoRegistry,
     opts: Options = {},
 ): AlgoController {
-    const algoKeys = Object.keys(registry);
-    const defaultKey = opts.initialAlgo && registry[opts.initialAlgo] ? opts.initialAlgo : algoKeys[0];
-
-    // UI state
-    const [algoKey, setAlgoKey] = useState<string>(defaultKey);
-    const [status, setStatus] = useState<'idle' | 'ready' | 'running' | 'paused' | 'done'>('idle');
-    const [speed, setSpeed] = useState<number>(opts.initialSpeed ?? 180);
-    const [pathLen, setPathLen] = useState<number | null>(null);
-    const [visitedApprox, setVisitedApprox] = useState<number>(0);
-
+    const speed = useSettingsStore((s) => speedToEPS[s.speed]);
     const gridVersion = useGridStore((s) => s.gridVersion);
 
+    const [currAlgo, setCurrAlgo] = useState(useSettingsStore.getState().algoKey);
+    const [status, setStatus] = useState<AlgoStatus>();
+    const [pathLen, setPathLen] = useState<number>();
+    const [visitedApprox, setVisitedApprox] = useState<number>(0);
+
     const runners = useRef(new Map<string, CachedRunner>());
+
+    const currentAlgoRef = useRef(currAlgo);
+    const speedRef = useRef(speed);
+
     const cancelPathAnimRef = useRef<Callback>(() => {});
     const sawPathEventRef = useRef(false);
-    const currentKeyRef = useRef<string>(defaultKey);
-    const speedRef = useRef(speed);
+
+    useEffect(() => {
+        const cached = runners.current.get(currentAlgoRef.current);
+        if (cached) {
+            cached.runner.setSpeed(speed);
+        }
+        speedRef.current = speed;
+    }, [speed]);
 
     const getEventHandler = useCallback(
         (snap: GridSnapShot, instant: boolean): ((e: AlgoEvent) => void) => {
@@ -92,7 +99,6 @@ export function useAlgoController(
                 if (event.type === 'visit') setVisitedApprox((v) => v + 1);
                 if (event.type === 'path') {
                     sawPathEventRef.current = true;
-                    setStatus('done');
                     setPathLen(event.nodes.length);
 
                     api.setGridLock(false);
@@ -123,82 +129,99 @@ export function useAlgoController(
         [gridRef, opts],
     );
 
+    const cleanupPreviousRun = useCallback(() => {
+        const runner = runners.current.get(currentAlgoRef.current);
+        if (!runner) {
+            return;
+        }
+        runner.runner.pause();
+        runners.current.delete(currentAlgoRef.current);
+        if (cancelPathAnimRef.current) {
+            cancelPathAnimRef.current();
+        }
+        if (gridRef.current) {
+            gridRef.current.clearOverlay();
+        }
+        setVisitedApprox(0);
+        setPathLen(undefined);
+        sawPathEventRef.current = false;
+    }, [gridRef]);
+
     const createRunnerFor = useCallback(
         (key: string, instant: boolean = opts.animatePath === false) => {
             const algo = registry[key];
-            if (!algo) return null;
-
-            const currentKey = currentKeyRef.current ?? '';
-            runners.current.get(currentKey)?.runner.pause();
-
-            currentKeyRef.current = key;
-
             const snap = getGridSnapshot();
-            if (!snap) {
-                return;
-            }
+            if (!algo || !snap) return null;
 
-            // stop any previous path animation for safety
-            cancelPathAnimRef.current?.();
-            gridRef.current?.clearOverlay();
+            cleanupPreviousRun();
 
             const gen = algo(snap);
-
-            setVisitedApprox(0);
-            setPathLen(null);
-            sawPathEventRef.current = false;
 
             const r = createRunner(gen, getEventHandler(snap, instant), {
                 speed: speedRef.current,
                 autoplay: false,
                 onFinish: () => {
                     if (!sawPathEventRef.current) {
-                        setStatus('done');
                         setPathLen(0);
                     }
+                },
+                onStatusChange: (s) => {
+                    setStatus(s);
                 },
             });
 
             runners.current.set(key, { runner: r, buildVersion: snap.gridVersion });
-            setStatus('ready');
+            setCurrAlgo(key);
+            currentAlgoRef.current = key;
+            // The runner only reports changes, so take its starting status here. This must stay after
+            // cleanupPreviousRun: pausing the old runner reports "paused", and this (last) write wins.
+            // Safe because a paused runner never reports again (its frame loop is cancelled).
+            setStatus(r.getStatus());
             return r;
         },
-        [getEventHandler, gridRef, opts, registry],
+        [getEventHandler, cleanupPreviousRun, opts, registry],
     );
 
-    // get's the current runner for the algorithm. If none present or the current one is already finished, it will create a new runner.
+    // The runner the controls act on. Keeps the active run while it is running (even if another
+    // algorithm was selected meanwhile) or paused on the selected algorithm; otherwise starts a fresh
+    // run of the selected algorithm (nothing cached, built for an older grid, finished, or a
+    // non-running run of a previously selected algorithm). The selection is read with getState(),
+    // not subscribed to: it should take effect when a control is used, not when the dropdown changes.
     const getOrCreateCurrent = useCallback(() => {
-        const key = currentKeyRef.current ?? algoKey;
+        const currAlgo = currentAlgoRef.current;
+        const selectedAlgo = useSettingsStore.getState().algoKey;
 
-        const cached = runners.current.get(key);
-        if (
-            !cached ||
-            cached.buildVersion !== gridVersion ||
-            (cached && cached.runner.getStatus() === AlgoStatus.done)
-        ) {
-            return createRunnerFor(key);
+        const cached = runners.current.get(currAlgo);
+        if (!cached || cached.buildVersion !== gridVersion) {
+            return createRunnerFor(selectedAlgo);
         }
-        return cached.runner;
-    }, [algoKey, createRunnerFor, gridVersion]);
 
-    // whenever the grid changes, we need to reset the runner and skip to end (if previous is already finished)
-    useEffect(() => {
-        const current = runners.current.get(currentKeyRef.current);
-        if (current && current.buildVersion !== gridVersion) {
-            current.runner.pause();
-            const instant = current.runner.getStatus() === AlgoStatus.done;
-            const r = createRunnerFor(currentKeyRef.current, instant);
-            if (instant) {
-                r?.skipToEnd();
-            }
+        if (currAlgo === selectedAlgo) {
+            return cached.runner.getStatus() === AlgoStatus.done ? createRunnerFor(currAlgo) : cached.runner;
         }
+
+        return cached.runner.getStatus() === AlgoStatus.running ? cached.runner : createRunnerFor(selectedAlgo);
     }, [createRunnerFor, gridVersion]);
 
-    /** Public API to switch algorithm */
-    const setAlgorithm = useCallback((key: string) => {
-        setAlgoKey(key);
-        currentKeyRef.current = key;
-    }, []);
+    // When the grid changes, rebuild the active run (not the selected one: the active run is what's
+    // on screen) and skip to the end if it had finished
+    useEffect(() => {
+        const current = runners.current.get(currentAlgoRef.current);
+
+        if (!current || current.buildVersion === gridVersion) {
+            return;
+        }
+
+        const wasRunning = current.runner.getStatus() === AlgoStatus.running;
+        const wasDone = current.runner.getStatus() === AlgoStatus.done;
+        const r = createRunnerFor(currentAlgoRef.current, wasDone);
+        if (wasRunning) {
+            useGridStore.getState().setGridLock(false);
+        }
+        if (wasDone) {
+            r?.skipToEnd();
+        }
+    }, [createRunnerFor, gridVersion]);
 
     // Controls operate on current runner -> can be sure the runner is upto date and created
     const play = useCallback(() => {
@@ -209,29 +232,26 @@ export function useAlgoController(
         api.setGridLock(true);
 
         runner.play();
-        setStatus('running');
     }, [getOrCreateCurrent]);
 
+    // acts on the active run only: there is nothing to pause in a run that doesn't exist yet, and
+    // getOrCreateCurrent would replace a run that finished this frame (wiping its path)
     const pause = useCallback(() => {
-        const runner = getOrCreateCurrent();
+        const runner = runners.current.get(currentAlgoRef.current)?.runner;
         if (!runner) return;
 
         const api = useGridStore.getState();
         api.setGridLock(false);
 
         runner.pause();
-        setStatus('paused');
-    }, [getOrCreateCurrent]);
+    }, []);
 
     const step = useCallback(() => {
         const runner = getOrCreateCurrent();
         if (!runner) return;
         const res = runner.step();
-        if (res.done) {
-            if (!sawPathEventRef.current) setPathLen(0);
-            setStatus('done');
-        } else {
-            setStatus('paused');
+        if (res.done && !sawPathEventRef.current) {
+            setPathLen(0);
         }
     }, [getOrCreateCurrent]);
 
@@ -244,41 +264,24 @@ export function useAlgoController(
         api.setGridLock(false);
 
         if (!sawPathEventRef.current) setPathLen(0);
-        setStatus('done');
     }, [getOrCreateCurrent]);
 
-    const setEps = useCallback(
-        (eps: number) => {
-            speedRef.current = Math.max(1, eps);
-            setSpeed(speedRef.current);
-            const runner = getOrCreateCurrent();
-            runner?.setSpeed(eps);
-        },
-        [getOrCreateCurrent],
-    );
-
     const clear = useCallback(() => {
-        const currentKey = currentKeyRef.current ?? '';
-        runners.current.get(currentKey)?.runner.pause();
-        createRunnerFor(currentKeyRef.current);
-        gridRef.current?.clearOverlay();
-    }, [createRunnerFor, gridRef]);
+        const currAlgo = useSettingsStore.getState().algoKey;
+        createRunnerFor(currAlgo);
+    }, [createRunnerFor]);
 
     // Cleanup on unmount
     const cleanup = () => {
         for (const r of runners.current.values()) r.runner.pause();
         cancelPathAnimRef.current?.();
         runners.current.clear();
-        currentKeyRef.current = '';
     };
     useEffect(() => cleanup, []);
 
     return {
-        currentAlgo: algoKey,
-        setAlgorithm,
-
+        runAlgo: currAlgo,
         status,
-        speed,
         pathLen,
         visitedApprox,
 
@@ -287,8 +290,5 @@ export function useAlgoController(
         pause,
         step,
         skipToEnd,
-        setSpeed: setEps,
-
-        recreate: () => createRunnerFor(currentKeyRef.current),
     };
 }

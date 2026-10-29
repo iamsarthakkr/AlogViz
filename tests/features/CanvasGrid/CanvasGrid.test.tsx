@@ -18,8 +18,7 @@ describe('CanvasGrid', () => {
         raf = installFakeRaf();
         // jsdom has no pointer capture; the component logs and carries on
         vi.spyOn(console, 'error').mockImplementation(() => {});
-        api().setDimensions(5, 8);
-        api().setCellSize(CELL);
+        api().reset(5, 8, CELL);
         api().setStart(2, 1);
         api().setGoal(2, 6);
     });
@@ -69,6 +68,51 @@ describe('CanvasGrid', () => {
         expect(api().at(0, 1)).toBe(CellKind.empty);
     });
 
+    // touch has no right button or alt, so the cell a drag starts on picks the brush
+    describe('a drag that starts on a wall', () => {
+        it('erases, for the whole drag', () => {
+            [0, 1, 2].forEach((c) => api().setCell(0, c, CellKind.wall));
+            const { surface, at } = setup();
+            fireEvent.pointerDown(surface, at(0, 0));
+            fireEvent.pointerMove(surface, at(0, 1));
+            fireEvent.pointerMove(surface, at(0, 2));
+            fireEvent.pointerUp(surface, at(0, 2));
+
+            expect([api().at(0, 0), api().at(0, 1), api().at(0, 2)]).toEqual(Array(3).fill(CellKind.empty));
+        });
+
+        // the brush is picked once per drag, so crossing empty cells doesn't flip it to drawing
+        it('leaves empty cells it crosses empty', () => {
+            api().setCell(0, 0, CellKind.wall);
+            const { surface, at } = setup();
+            fireEvent.pointerDown(surface, at(0, 0));
+            fireEvent.pointerMove(surface, at(0, 1));
+
+            expect(api().at(0, 1)).toBe(CellKind.empty);
+        });
+    });
+
+    it('a drag that starts on an empty cell draws over walls it crosses', () => {
+        api().setCell(0, 1, CellKind.wall);
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, 0));
+        fireEvent.pointerMove(surface, at(0, 1));
+        fireEvent.pointerMove(surface, at(0, 2));
+
+        expect([api().at(0, 0), api().at(0, 1), api().at(0, 2)]).toEqual(Array(3).fill(CellKind.wall));
+    });
+
+    // cells are a flat array, so (r, cols) would read (r + 1, 0): a wall there must not pick the eraser
+    it('a drag starting just past the right edge draws, even if the next row starts with a wall', () => {
+        const { cols } = api();
+        api().setCell(1, 0, CellKind.wall);
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, cols));
+        fireEvent.pointerMove(surface, at(0, cols - 1));
+
+        expect(api().at(0, cols - 1)).toBe(CellKind.wall);
+    });
+
     it('drags the start and goal markers instead of painting over them', () => {
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(2, 1));
@@ -99,6 +143,16 @@ describe('CanvasGrid', () => {
         expect(api().at(0, 1)).toBe(CellKind.empty);
     });
 
+    it('stops painting once the pointer is cancelled', () => {
+        const { surface, at } = setup();
+        fireEvent.pointerDown(surface, at(0, 0));
+        fireEvent.pointerCancel(surface, at(0, 0));
+        fireEvent.pointerMove(surface, at(0, 1));
+
+        expect(api().at(0, 0)).toBe(CellKind.wall);
+        expect(api().at(0, 1)).toBe(CellKind.empty);
+    });
+
     it('bumps gridVersion on edits so cached algorithm runs are invalidated', () => {
         const { surface, at } = setup();
         const version = api().gridVersion;
@@ -120,5 +174,10 @@ describe('CanvasGrid', () => {
         base.fills.length = 0;
         ref.current!.redrawBase();
         expect(base.fills.length).toBeGreaterThan(0);
+    });
+
+    it('claims touch gestures so dragging paints instead of scrolling', () => {
+        const { surface } = setup();
+        expect(surface).toHaveStyle({ touchAction: 'none' });
     });
 });

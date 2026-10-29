@@ -1,4 +1,3 @@
-//
 // Authored by - Sarthak Kumar
 //
 // CanvasStage: stacks two <canvas> layers for the grid.

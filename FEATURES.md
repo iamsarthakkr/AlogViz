@@ -1,18 +1,19 @@
 # Features
 
-What the app does today, ordered core-first. For *how* each is implemented in depth, see
+What the app does today, ordered core-first. For _how_ each is implemented in depth, see
 [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## 1. Interactive wall-painting grid
 
-The core surface: a canvas grid (`features/CanvasGrid`) of empty/wall cells. Click-drag with
-the left mouse button (or plain touch/pen) paints walls; right-click-drag (or Alt+drag)
-erases them. A single continuous drag paints every cell it crosses without re-triggering per
-cell if the cell is already the target kind.
+The core surface: a canvas grid (`features/CanvasGrid`) of empty/wall cells. Dragging (mouse,
+touch or pen) paints walls; a drag that **starts on a wall** erases instead, which is how touch
+users erase. Right-click-drag or Alt+drag also erases. The brush is chosen once per drag, so a
+single drag either draws or erases every cell it crosses, never a mix.
 
 - Implementation: `CanvasGrid.tsx`'s pointer handlers (`onPointerDown/Move/Up`) compute the
-  hit cell from client coordinates, choose a `Brush` (`Wall`/`Erase`) from the mouse
-  button/modifier key, and write into `useGridStore` via `setCell` + a batched `refresh()`.
+  hit cell from client coordinates, choose a `Brush` (`Wall`/`Erase`) from the starting cell
+  and the mouse button/modifier key, and write into `useGridStore` via `setCell` + a batched
+  `refresh()`.
 - Interacts with: the base canvas layer redraws via `drawBaseScene` any time grid state
   changes; a running algorithm locks the grid (`gridLock`) so painting is disabled mid-run.
 
@@ -36,12 +37,12 @@ be dropped on top of the other marker.
 Four algorithms, selectable from the "Algorithm" dropdown in the toolbar
 (`features/algo/index.ts`):
 
-| Algorithm | File | Notes |
-|---|---|---|
-| Breadth-first search | `bfs.ts` | Guarantees shortest path (unweighted); ring-buffer `Queue`. |
-| Depth-first search | `dfs.ts` | Explores greedily, does **not** guarantee shortest path; explicit array-as-stack. |
-| Bidirectional BFS | `bidirectionalBfs.ts` | Two BFS frontiers grown from start and goal simultaneously, meeting in the middle; typically visits fewer cells than plain BFS. |
-| Dijkstra's | `dijkstra.ts` | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet). |
+| Algorithm            | File                  | Notes                                                                                                                           |
+| -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Breadth-first search | `bfs.ts`              | Guarantees shortest path (unweighted); ring-buffer `Queue`.                                                                     |
+| Depth-first search   | `dfs.ts`              | Explores greedily, does **not** guarantee shortest path; explicit array-as-stack.                                               |
+| Bidirectional BFS    | `bidirectionalBfs.ts` | Two BFS frontiers grown from start and goal simultaneously, meeting in the middle; typically visits fewer cells than plain BFS. |
+| Dijkstra's           | `dijkstra.ts`         | Binary min-heap priority queue (`store/priority_queue.ts`); currently uniform edge weight (no weighted terrain yet).            |
 
 Each algorithm is a generator that yields one event per unit of work
 (`enqueue`/`visit`/final `path`) rather than computing the answer up front — this is what
@@ -59,17 +60,19 @@ enables every control below without algorithm-specific code:
   the generator instantly and paints the final path with no animation.
 - **Clear path**: discards the current run's progress, rebuilds a fresh (not-yet-started)
   generator for the selected algorithm from the live grid, and clears the overlay canvas.
+  Visualize afterwards starts over; a paused run is not resumed.
 - **Speed**: `slow` / `medium` / `fast` presets (`utils/settings.ts:speedToEPS` → 80 / 220 /
   600 simulated events per second), changeable live, mid-run, without restarting.
 
-Switching the selected algorithm mid-session preserves each algorithm's own progress
-independently (each has its own cached generator+runner) — flipping back to a previously-run
-algorithm resumes/redisplays where it left off rather than restarting, *unless* the grid
-changed in the meantime, in which case it's rebuilt from the new grid on next display.
+Picking a different algorithm only changes the **selection** (stored in `useSettingsStore`); the
+run on screen is left alone. A run in progress keeps going to its own path, and Pause still
+pauses it. The new algorithm is used the next time a run starts: Visualize or Step on a paused
+or finished run discards it and starts the newly selected algorithm.
 
 Editing the grid (walls/markers) while a **finished** visualization is showing automatically
 re-solves and re-draws the path instantly (no animation replay, no need to press Visualize
-again) — editing while a run is **in progress** simply invalidates it; the user presses
+again). While a run is **in progress** the grid is locked against edits; editing a **paused**
+run, or resizing the window mid-run, discards the unfinished run, and the user presses
 Visualize again to replay against the new grid.
 
 ## 4. Maze & pattern generation
@@ -78,16 +81,17 @@ A second dropdown ("Mazes & Patterns", `features/mazes/index.ts`) fills the grid
 generated wall pattern, animated the same way algorithms are (generator + `requestAnimationFrame`
 runner), but writing directly into the grid store instead of a canvas overlay:
 
-| Pattern | File | Technique |
-|---|---|---|
-| Recursive Division | `recursiveDivision.ts` (`vertical_prob=0.5`) | Recursively bisects the interior with single-gap walls, unbiased direction choice. |
-| Recursive Division (vertical skew) | same file (`vertical_prob=0.7`) | Same algorithm, biased toward vertical dividing walls → more horizontally elongated chambers. |
-| Recursive Division (horizontal skew) | same file (`vertical_prob=0.3`) | Biased toward horizontal dividing walls. |
-| Prim's | `prims.ts` | Randomized minimum-spanning-tree carve over the odd/odd cell lattice. |
-| Randomized Depth First Search | `floodFill.ts` | Iterative backtracking carve (classic "growing tree" maze). |
-| Random Walls | `random.ts` | Independent per-cell coin flip (35% wall probability), no connectivity guarantee. |
+| Pattern                              | File                                         | Technique                                                                                     |
+| ------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Recursive Division                   | `recursiveDivision.ts` (`vertical_prob=0.5`) | Recursively bisects the interior with single-gap walls, unbiased direction choice.            |
+| Recursive Division (vertical skew)   | same file (`vertical_prob=0.7`)              | Same algorithm, biased toward vertical dividing walls → more horizontally elongated chambers. |
+| Recursive Division (horizontal skew) | same file (`vertical_prob=0.3`)              | Biased toward horizontal dividing walls.                                                      |
+| Prim's                               | `prims.ts`                                   | Randomized minimum-spanning-tree carve over the odd/odd cell lattice.                         |
+| Randomized Depth First Search        | `floodFill.ts`                               | Iterative backtracking carve (classic "growing tree" maze).                                   |
+| Random Walls                         | `random.ts`                                  | Independent per-cell coin flip (35% wall probability), no connectivity guarantee.             |
 
 Behavior common to all patterns:
+
 - Generating a maze first calls `algoController.clear()` (discarding any visualized path so
   it doesn't linger under the new walls), then hides the start/goal markers and **locks the
   grid** for the duration of generation, then restores the markers (re-snapped off any wall
@@ -101,15 +105,30 @@ Behavior common to all patterns:
 
 ## 5. Live run stats
 
-While an algorithm is selected/running, `useAlgoController` tracks and exposes:
-- `visitedApprox` — count of cells visited so far (increments on every `visit` event).
-- `pathLen` — length of the final path once found (`0` if the generator finishes without ever
-  yielding a `path` with nodes, i.e. no path exists).
-- `status` — `idle | ready | running | paused | done`.
+For the active run, `useAlgoController` tracks and exposes:
 
-These are currently computed and available on the controller but not all surfaced in the
-toolbar UI (`AlgoControls.tsx` reads `status` and `speed` for button state/labels; `pathLen`
-and `visitedApprox` are plumbed through but not currently rendered as visible text anywhere).
+- `visitedApprox` — count of cells visited so far (increments on every `visit` event).
+- `pathLen` — the number of cells on the final path (both endpoints included) once found;
+  `undefined` until then, and `0` if the run finishes without reaching the goal.
+- `status` — the runner's `AlgoStatus` (`initial` = ready, `running`, `paused`, `done`), or
+  `undefined` before the first run. It comes only from the runner (`onStatusChange`).
+- `runAlgo` — the algorithm of the run these numbers belong to (the active run, which can
+  differ from the dropdown's selection until the next run starts).
+
+`ui/Stats.tsx` renders them (`Grid.tsx` passes the values as props):
+
+- **Algo**: `runAlgo` (the run the numbers belong to).
+- **Status**: Ready / Running / Paused / Finished.
+- **Visited**: `visitedApprox`.
+- **Path**: the path length in **steps** (`pathLen - 1`, since `pathLen` counts both
+  endpoints); "No path" when the run finished without reaching the goal.
+
+Before the first run, Status and Path show a "-" placeholder (Algo currently shows the selected
+algorithm until the controller's planned `activeRef` refactor leaves it empty). Every item is rendered in every state:
+on phones the stats are an `auto` grid row, so an item appearing or a value wrapping mid-run
+would change the row's height, resize the grid and stop the run. Only the status is an
+`aria-live` region (the visited count changes every frame). `PlaybackControls.tsx` reads
+`status` for its button state.
 
 ## 6. Responsive canvas rendering (crisp at any zoom/DPI)
 
@@ -119,11 +138,43 @@ rather than user-facing, but shapes what "adding a new visual element" requires 
 logical, not physical, pixel coordinates — the DPR scale is baked into the canvas transform
 once at setup).
 
-## 7. Grid settings (rows / columns / cell size) — implemented but not currently reachable
+## 7. Responsive layout and grid sizing
 
-A full settings modal (`features/Toolbar/Settings.tsx`) exists for editing row count, column
-count, and cell size in pixels (draft values validated/clamped, applied atomically on
-"Apply"), backed by `useGridStore.setDimensions`/`setCellSize`. **It is not currently
-rendered anywhere in the app** (not exported from `Toolbar/index.ts`, not mounted by
-`Toolbar.tsx`). Until it's wired up, grid dimensions
-are fixed at the `utils/constants.ts` defaults (35 rows × 61 cols × 20px cells).
+The app works from a 320px phone to a large monitor. Grid size is not user-configurable; it is
+chosen from the screen.
+
+- **Layouts.** Below 1280px (phones, tablets, small laptops): a compact header with the
+  algorithm and maze pickers, the grid, the stats and legend, and a bottom bar with Visualize /
+  Step / Clear / Speed within thumb reach. From 1280px: one top bar with everything, the legend
+  on the left and the stats on the right of the grid. See ARCHITECTURE.md §1 "Page layout".
+- **Grid dimensions are picked once, on load** (`utils/layout.ts:pickGridLayout`): columns come
+  from a fixed preset list (21 / 35 / 41 / 51) by how wide the grid's box is, rows from its
+  height. Rows and columns are always odd (the maze generators carve on odd indices inside a
+  wall border). Cell size is a whole number of pixels between 12 and 32.
+- **Resizing or rotating keeps the grid** (`fitCellSize`): rows, columns, walls and markers stay;
+  only the cell size changes. A finished run is re-solved and repainted at the new size; a run
+  in progress is stopped (press Visualize again). Reload to get dimensions picked for the new
+  size. If the box is too small even for 12px cells, the grid scrolls instead of shrinking.
+- **Touch:** dragging on the grid paints instead of scrolling the page (`touch-action: none`),
+  controls are at least 44px tall, and the bottom bar clears the iPhone home bar.
+- **Legend**: a swatch per item (Start, Goal, Wall, Frontier, Visited, Path) drawn with the
+  grid's own painters and palette, so it always matches the grid (visited is drawn over
+  frontier, as on the grid). Wrapping row on phones, a column on desktop.
+- **Stats**: one row of label-over-value cells on phones, a column on desktop (see §5).
+
+## 8. Info dialog ("About AlgoViz")
+
+The **ⓘ** button next to the title opens a dialog with four short slides: what AlgoViz is, how
+to use it, a line per algorithm, and about (author, GitHub link). Arrows on both sides, dots to
+jump to a slide, and the ← / → keys page through it; it always opens on the first slide.
+
+- **First visit:** it opens on its own the first time the app is loaded, and is remembered as
+  seen once the user closes it (`localStorage` key `algoviz:info-seen`). If storage is blocked
+  (e.g. Safari private mode), it simply opens again next time.
+- It's a native modal `<dialog>`: Esc, the X or a click outside closes it, focus stays inside
+  while open, and the page behind is inert. It takes no layout space, so it doesn't disturb a
+  run in progress.
+- The algorithm names come from the registry (`algoLabels`); each needs a one-line description
+  in `ui/InfoModal.tsx` (a test checks every registered algorithm has one).
+- Implementation: generic shell `components/Modal.tsx`, content `ui/InfoModal.tsx`, state
+  `features/hooks/useInfoModal.ts`.

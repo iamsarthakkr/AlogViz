@@ -11,14 +11,14 @@ import { bidirectionalBfs } from './bidirectionalBfs';
 import { dijkstra } from './dijkstra';
 
 export const algorithms: Record<string, PathFinder> = {
-    'Breath-first search': bfs,
+    'Breadth-first search': bfs,
     'Depth-first search': dfs,
     'Bidirectional BFS': bidirectionalBfs,
     "Dijkstra's": dijkstra,
 };
 
 export const algoLabels = [
-    'Breath-first search',
+    'Breadth-first search',
     'Depth-first search',
     'Bidirectional BFS',
     "Dijkstra's", //

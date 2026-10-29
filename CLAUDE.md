@@ -21,11 +21,11 @@ pattern that both pathfinding algorithms and maze generators share.
 - **Vite 8** (static SPA build, `@vitejs/plugin-react-swc`), **React 19**
 - **TypeScript**, strict mode
 - **Zustand 5** for state (two stores, no middleware/persistence)
-- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes) for chrome (toolbar, dropdown, settings modal); the grid itself is drawn on `<canvas>`, not DOM
+- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes, **light theme only**) for chrome (toolbar, dropdown, modal); the grid itself is drawn on `<canvas>`, not DOM
 - **Prettier** + ESLint (flat config: `typescript-eslint` + `react-hooks` + `react-refresh`)
 - One path alias (`vite.config.ts` + `tsconfig.app.json`): `@/*` → `src/*` — import as `@/features/...`, `@/ui/...`
 
-Tests: **Vitest** + Testing Library (jsdom), in `tests/` — see "Tests" below. No backend/API/database — everything is client-side, in-memory, and non-persistent (a refresh resets the grid).
+Tests: **Vitest** + Testing Library (jsdom), in `tests/` — see "Tests" below. No backend/API/database — everything is client-side and in-memory (a refresh resets the grid). The one thing persisted is whether the info dialog has been seen (`localStorage`, see `useInfoModal`).
 
 ## Running it
 
@@ -53,9 +53,12 @@ index.html             HTML shell: title/meta, mounts src/main.tsx
 src/
   main.tsx             Entry: fonts, index.css, renders <App /> in StrictMode
   App.tsx              Root component (just renders ui/Grid)
-  index.css            Tailwind + daisyUI setup, theme tokens
-  ui/Grid.tsx           Top-level page composition: Toolbar + CanvasGrid
-  components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
+  index.css            Tailwind + daisyUI setup, theme tokens, the .page grid layout (areas per breakpoint)
+  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator + info dialog state; places every piece in the .page grid layout
+  ui/Legend.tsx, Stats.tsx  Side panels: legend (swatches drawn by the painters), stats of the active run
+  ui/InfoModal.tsx      The "About AlgoViz" carousel (what it is, how to use, algorithms, about) inside components/Modal
+  components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown, Modal); content comes in as props/children
+  icons/                Small SVG icon components (Info, Close, Chevron): aria-hidden, drawn in currentColor
   features/
     store/               Zustand stores: useGridStore (grid data), useSettingsStore (UI state)
     CanvasGrid/          The interactive canvas: pointer handling, base-layer draw scheduling
@@ -63,14 +66,17 @@ src/
     algo/                Pathfinding algorithms as generator functions (bfs, dfs, dijkstra, ...)
     mazes/               Maze/pattern generators as generator functions (prims, recursiveDivision, ...)
     animations/          The generator "runner" (rAF playback engine) + hooks that drive algo/maze runs
-    Toolbar/             Algorithm/maze dropdowns, play/pause/step/clear, speed control
-    hooks/useRaf.ts      Generic "coalesce into one rAF callback" hook
+    Toolbar/             AlgoPickers (algorithm/maze dropdowns), PlaybackControls (play/pause/step/clear, speed)
+    hooks/               useRaf (coalesce into one rAF callback), useResponsiveGrid (sizes the grid to its box),
+                         useInfoModal (info dialog open state + first-visit flag in localStorage)
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
-  utils/                 Small pure helpers (grid init/snap, clamp, speed presets, constants)
+  utils/                 Small pure helpers (grid init/snap, grid sizing in layout.ts, clamp, speed presets, constants)
 tests/                   Mirrors src/ one-to-one (src/features/algo/bfs.ts → tests/features/algo/bfs.test.ts)
-  setup.ts               jest-dom, canvas getContext stub, resets both Zustand stores before each test
-  helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx
+  setup.ts               jest-dom, recording canvas ctx per canvas (a width/height change records a clear),
+                         no-op ResizeObserver, resets both Zustand stores before each test
+  helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx,
+                         fake ResizeObserver (resize.ts), fake algo controller / maze generator (controllers.ts)
 ```
 
 Note: there are **two unrelated things called "store"** in this repo — `src/store/` (data
@@ -118,5 +124,14 @@ remaining friction is the per-file `id`/`inb`/`isWall` helpers and the parallel 
   imperatively by the runner's event callback, bypassing React re-renders for performance).
 - `gridLock` (in `useGridStore`) is the mechanism that disables pointer editing while an
   algorithm or maze generator is running.
+- One copy of every piece of state. The user's **selections** (algorithm, speed) live only in
+  `useSettingsStore`: the dropdowns write there and `useAlgoController` reads from there, never
+  keeping its own copy. A run's **status** comes only from the runner (`onStatusChange`);
+  controls never set it. Details in ARCHITECTURE.md §2 and §7.
 - Component/hook pairs follow a `Thing.tsx` + `useThing.ts` split with a barrel `index.ts`
   re-exporting the public surface (see `CanvasGrid/`).
+- Responsive styles are mobile-first with **one desktop breakpoint, `xl:`** (1280px), matching
+  `@variant xl` in the `.page` layout. Render each piece once and place it by grid area; never
+  render a copy per breakpoint. Nothing next to the grid may change size during a run (panels
+  are `clamp()`ed, controls have fixed `xl:` widths): a size change resizes the grid and stops
+  the run. Details in ARCHITECTURE.md §1 "Page layout".

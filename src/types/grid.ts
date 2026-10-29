@@ -36,9 +36,6 @@ export type GridState = Grid & {
     inBounds(r: number, c: number): boolean;
     at(r: number, c: number): CellKind;
 
-    setDimensions(rows: number, cols: number): void;
-    setCellSize(px: number): void;
-
     setCell(r: number, c: number, kind: CellKind): void;
     clearWalls(): void;
     fillWalls(): void;
@@ -52,7 +49,10 @@ export type GridState = Grid & {
     setGridLock(flag: boolean): void;
 
     refresh(): void;
-    reset(): void;
+    reset(rows?: number, cols?: number, cellSize?: number): void;
+    resize(cellSize: number): void;
 };
 
 export type GridSnapShot = Grid;
+
+export type GridLayout = Pick<Grid, 'rows' | 'cols' | 'cellSize'>;

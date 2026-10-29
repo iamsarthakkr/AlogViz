@@ -22,7 +22,7 @@ describe('useMazeGenerator', () => {
     let raf: ReturnType<typeof installFakeRaf>;
     beforeEach(() => {
         raf = installFakeRaf();
-        api().setDimensions(5, 5);
+        api().reset(5, 5);
         api().setStart(2, 1);
         api().setGoal(2, 3);
     });

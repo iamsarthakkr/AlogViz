@@ -8,25 +8,87 @@ feature-level behavior.
 
 ```
 main.tsx → App.tsx
-  └─ ui/Grid.tsx
-       ├─ Toolbar (ctx = ref to CanvasGrid)
-       │    └─ AlgoControls (ctx)
-       │         ├─ Dropdown (algorithm select)
-       │         ├─ Dropdown (maze/pattern select)
-       │         ├─ Visualize / Pause / Step buttons
-       │         ├─ Clear path button
-       │         └─ Dropdown (speed select)
-       └─ CanvasGrid (forwardRef → CanvasGridHandle)
-            └─ CanvasStage (forwardRef → CanvasStageHandle)
-                 ├─ <canvas> base   (useCanvasLayer)
-                 └─ <canvas> overlay (useCanvasLayer)
+  └─ ui/Grid.tsx  .page   (owns: gridRef, useAlgoController, useMazeGenerator, useResponsiveGrid, useInfoModal)
+       ├─ (no area)  ui/InfoModal → components/Modal <dialog>   (top layer; takes no layout space)
+       ├─ [header]   Toolbar <header> (algo, maze, toggleModal)
+       │               ├─ info button (InfoIcon) → toggleModal
+       │               └─ AlgoPickers: Dropdown (algorithm), Dropdown (maze/pattern)
+       ├─ [grid]     <main> (padded)
+       │               └─ grid box (no padding; measured by useResponsiveGrid)
+       │                    └─ CanvasGrid (forwardRef → CanvasGridHandle)
+       │                         └─ CanvasStage (forwardRef → CanvasStageHandle)
+       │                              ├─ <canvas> base   (useCanvasLayer)
+       │                              └─ <canvas> overlay (useCanvasLayer)
+       ├─ [stats]    ui/Stats <aside>    (active run: algorithm, status, visited, path steps)
+       ├─ [legend]   ui/Legend <aside>   (swatches drawn by the grid's painters)
+       └─ [controls] PlaybackControls (algo): Visualize, Pause/Step, Clear path, Dropdown (speed)
 ```
 
-`ui/Grid.tsx` holds a single `gridRef` (`useRef<CanvasGridHandle>`) and passes it to both
-`Toolbar` and `CanvasGrid`. This ref is the *only* wiring between the toolbar's controls and
-the canvas — there is no prop/callback chain for draw commands. `AlgoControls` forwards the
-same ref into `useAlgoController(ctx, algorithms)`, which uses
-`ctx.current.getOverlayCtx()` / `clearOverlay()` to paint directly.
+`[name]` is the CSS grid area each piece is placed in (see "Page layout" below).
+
+`ui/Grid.tsx` is the nearest common parent of everything that drives or shows a run, so it owns
+the **one** algorithm controller (`useAlgoController(gridRef, algorithms, …)`) and maze
+generator and passes them down as props (`algo`, `maze`). There must be exactly one instance:
+calling the hook in two components would create two independent controllers with separate
+runners. Plain props rather than Context or a store: the tree is one or two levels deep, and
+the controller is a hook bound to a component lifecycle (refs, effects, rAF), not plain data.
+
+The `gridRef` (`useRef<CanvasGridHandle>`) goes only to `CanvasGrid` and to the controller,
+which uses `gridRef.current.getOverlayCtx()` / `clearOverlay()` to paint the overlay directly.
+The toolbar never touches the canvas; it only calls the controller's public API. Because the
+controller arrives as a prop, the toolbar components are tested with a fake controller
+(`tests/helpers/controllers.ts`).
+
+Re-render cost: controller state (e.g. `visitedApprox`, updated on every visit event) lives in
+`GridPage`, so a running algorithm re-renders the whole page. React batches every `setState`
+inside one rAF callback, so that is **one commit per frame**, not one per event (profiled: about
+200 commits for a fast BFS run, 0.1–2 ms each in dev mode). Children's effects
+don't re-run (their deps are unchanged; the legend swatches rely on `getCtx` being stable) and
+the overlay is painted imperatively, but keep anything expensive out of that render path (or
+`memo` it).
+
+### Page layout (`.page` in `index.css`)
+
+The page is a CSS grid with named areas. Every piece is rendered **once**; only the area map
+changes per breakpoint, so the same `PlaybackControls` sit in the bottom bar on a phone and in
+the top bar on desktop. Rendering a piece once per breakpoint and hiding one copy would
+duplicate every button (and break every test that finds a button by name).
+
+```
+below xl (phones, tablets, small laptops)      xl and up (≥ 1280px)
+'header'                                        'header header controls controls'
+'grid'      ← minmax(0, 1fr)                    'legend grid   grid     stats'
+'stats'                                         columns: clamp(9rem,16vw,15rem) minmax(0,1fr) auto clamp(…)
+'legend'
+'controls'  ← bottom bar, thumb reach
+```
+
+- **One desktop breakpoint, `xl`.** It is the narrowest width where the one-row top bar (title,
+  pickers, controls ≈ 1130px) fits. Components switch with the same `xl:` prefix (they are
+  written mobile-first: unprefixed classes are the phone styles, `xl:` overrides for desktop).
+- **`minmax(0, 1fr)` for the grid track, and `min-h-0 min-w-0` on its elements.** A plain `1fr`
+  is never smaller than its content, so once the canvas is drawn the grid could never shrink.
+- **Panels scale with the window** (`clamp(9rem, 16vw, 15rem)`), so the grid keeps most of the
+  width. They are **never sized by their content**: stats change during a run, and a panel that
+  changes size resizes the grid box, which `resize()` treats as a grid change and stops the run.
+  The same applies to the phone `stats` row: it must keep one height for its whole lifetime.
+- **The controls get their own `auto` column** (spanning it and the stats column), so the top
+  bar doesn't depend on the panel width. This is only safe because every control has a fixed
+  `xl:` width: swapping Step for Pause or changing the speed label never changes the column.
+- **The measured grid box has no padding.** `<main>` carries the gutter; the box inside it is
+  what `useResponsiveGrid` measures, and load (border box) and `ResizeObserver` (content box)
+  must see the same size. It centres the canvas with `items-center-safe justify-center-safe`
+  and `overflow-auto`, so a grid held at `MIN_CELL` scrolls instead of being clipped.
+- **The info dialog takes no layout space.** It is a modal `<dialog>` (`showModal()`, so it sits
+  in the browser's top layer), not a grid area, so opening it can't resize the grid or stop a run.
+- **Theme: light only.** daisyUI is configured with `themes: light --default` in `index.css`.
+  Its default would switch daisyUI's base colours with the OS dark mode while the app's own
+  colours and the canvas palette stay light, giving dark text on a dark modal box.
+- **Phone details:** the speed menu opens upward from the bottom bar (`d-dropdown-top
+d-dropdown-end`, `xl:d-dropdown-bottom`); controls are at least 44px tall; long labels have a
+  short phone form (`Clear`, `Mazes`) with an `aria-label`/`label` that keeps one accessible
+  name at every width; the bottom bar pads for the iPhone home bar
+  (`env(safe-area-inset-bottom)`, enabled by `viewport-fit=cover` in `index.html`).
 
 ## 2. State management
 
@@ -36,19 +98,23 @@ Two independent Zustand stores, no shared slice, no middleware (no persist/devto
 
 ```ts
 type Grid = {
-  gridVersion: number;   // bumped on every structural edit; the invalidation signal
-  rows, cols, cellSize: number;
-  cells: CellKind[];     // flat array, index = r*cols+c, CellKind.empty | CellKind.wall
-  start, goal: Coord;    // {r:-1,c:-1} is the sentinel for "removed" (used during maze gen)
-  gridLock: boolean;     // true while an algorithm/maze run owns the grid
-}
+    gridVersion: number; // bumped on every structural edit; the invalidation signal
+    rows;
+    cols;
+    cellSize: number;
+    cells: CellKind[]; // flat array, index = r*cols+c, CellKind.empty | CellKind.wall
+    start;
+    goal: Coord; // {r:-1,c:-1} is the sentinel for "removed" (used during maze gen)
+    gridLock: boolean; // true while an algorithm/maze run owns the grid
+};
 ```
 
 Plus derived helpers (`idx`, `inBounds`, `at`, `validStart`, `validGoal`) and mutators
-(`setDimensions`, `setCellSize`, `setCell`, `clearWalls`, `fillWalls`, `setStart`, `setGoal`,
-`setGridLock`, `refresh`, `reset`).
+(`setCell`, `clearWalls`, `fillWalls`, `setStart`, `setGoal`, `setGridLock`, `refresh`, `reset`,
+`resize`).
 
 Key behaviors baked into the mutators:
+
 - `setCell` refuses to overwrite the start/goal cell, and no-ops if the value is unchanged
   (so `refresh()`/re-renders aren't triggered for redundant paints).
 - `setStart`/`setGoal` **snap** to the nearest non-wall cell via a small BFS
@@ -56,11 +122,17 @@ Key behaviors baked into the mutators:
   refuse the move if it would collide with the other marker.
 - `setStart(-1,-1)` / `setGoal(-1,-1)` (negative coords) is the "no marker" sentinel used by
   `useMazeGenerator` to hide start/goal while carving.
-- `refresh()` is the manual dirty flag — most mutators don't bump `gridVersion` themselves;
+- `refresh()` is the manual dirty flag — most mutators (all but `reset`/`resize`) don't bump `gridVersion` themselves;
   callers (`CanvasGrid`'s pointer handlers) call `api.refresh()` after a batch of `setCell`
   calls so a drag-paint doesn't trigger one version bump per cell.
-- `setDimensions` clamps rows/cols to `[2,300]`, clamps existing start/goal into the new
-  bounds, and nudges goal off start if a resize collapsed them onto the same cell.
+- `reset(rows?, cols?, cellSize?)` builds a fresh empty grid via `initGrid` (start/goal re-placed
+  for the new size; no arguments = the `utils/constants.ts` defaults). It **bumps** `gridVersion`
+  rather than restarting at 0: runners are cached by the version they were built from, so a
+  restart could make a runner built for the old grid look current.
+- `resize(cellSize)` changes only the drawn cell size (dimensions, walls and markers are kept),
+  clamped to `[MIN_CELL, MAX_CELL]`. It bumps `gridVersion` so a finished run is re-solved and
+  repainted at the new size, and is a no-op when the clamped size equals the current one.
+  Rows/cols are only ever chosen by `reset`; the grid dimensions are not user-configurable.
 
 `GridSnapShot` (= `Grid`, no methods) is what gets handed to algorithms/mazes — a frozen,
 plain-data copy so a generator's view of the grid can't be mutated mid-run by further
@@ -68,42 +140,62 @@ pointer input (see §4).
 
 ### `useSettingsStore` (`features/store/useSettingsStore.ts`) — UI/session state
 
-`algoKey`, `speed` (`'slow'|'medium'|'fast'`), the Settings-modal draft fields
-(`rowsDraft`/`colsDraft`/`cellSizeDraft` + open/close), and `mazeGeneratorKey`. This store is
-mostly cosmetic bookkeeping for dropdown labels; the actual runner speed lives in
-`useAlgoController`'s own `speed` state (converted from the preset via
-`utils/settings.ts:speedToEPS`).
+The user's selections: `algoKey` and `speed` (`'slow'|'medium'|'fast'`). This is the **only**
+copy: the dropdowns write here and nothing else, and `useAlgoController` reads from here (the
+speed preset live, converted via `utils/settings.ts:speedToEPS`; the algorithm with
+`getState()` when a run starts, see §7). Keeping one copy means the two can't drift apart. The
+maze dropdown is an action menu (picking a maze generates it now), so no maze key is stored.
 
 ### State that intentionally lives outside Zustand
 
 High-frequency/imperative state is kept in `useRef`/local `useState` inside hooks rather than
 in a store, because it changes many times per second during playback and/or must survive
 across renders without forcing re-renders:
-- `useAlgoController`: `runners` (a `Map<algoKey, {runner, buildVersion}>` — one cached
-  generator+runner per algorithm so switching algorithms doesn't lose progress),
-  `currentKeyRef`, `cancelPathAnimRef`, `sawPathEventRef`, `speedRef`.
+
+- `useAlgoController`: `runners` (a `Map<algoKey, {runner, buildVersion}>` holding the active
+  run; it never holds more than one, see §7), `currentAlgoRef` (the active run's key, for
+  synchronous reads in callbacks), `cancelPathAnimRef`, `sawPathEventRef`, `speedRef`.
 - `useMazeGenerator`: `runnerRef`, a cleanup closure ref that restores start/goal.
 - `CanvasGrid`: `dragMode` (paint / move-start / move-goal), `brushRef` (wall vs erase).
+- `useInfoModal` (`features/hooks/`): the info dialog's `open` state, owned by `GridPage` and
+  shared by the toolbar's button and `InfoModal`. Its initial value comes from `localStorage`
+  (`algoviz:info-seen`): the dialog opens on a first visit and is marked seen when it is closed.
+  This is the only thing the app persists.
+
+**Modal open state** (`components/Modal`): the parent's `open` prop is the truth and the native
+`<dialog>` follows it (an effect calls `showModal()`/`close()`, guarded on `dialog.open` for Strict
+Mode). When the browser closes it on its own (Esc, the X or the backdrop, all
+`<form method="dialog">`), the native `close` event calls `onModalClosed` so the parent's state
+follows back. Without that, the parent would still think it's open and the info button would do
+nothing after an Esc.
 
 ## 3. Canvas rendering layer
 
 `components/useCanvasLayer.ts` is the low-level hook: given `rows/cols/cellSize`, it sizes a
 `<canvas>` for devicePixelRatio (`ctx.setTransform(dpr,0,0,dpr,0,0)`, disables image
-smoothing for crisp cell edges) and exposes `getCtx()`. `components/CanvasStage.tsx` stacks
+smoothing for crisp cell edges) and exposes `getCtx()`, a **stable** function (`useCallback`),
+so callers can list it in effect deps without re-running the effect on every render. Besides
+the grid, `ui/Legend.tsx` uses it for its swatches. It sizes the canvas in a
+**`useLayoutEffect`**: assigning `canvas.width` wipes its pixels, and layout effects run before
+every passive effect, so the canvas is resized first and the algorithm controller's
+`useEffect` then repaints onto the resized canvas (with a plain `useEffect` the resize would
+run after the repaint and erase a finished path). `components/CanvasStage.tsx` stacks
 two of these — `base` (pointer-events auto) and `overlay` (`pointer-events: none`,
 absolutely positioned on top) — and exposes both contexts via `useImperativeHandle`.
 
 `features/CanvasGrid/CanvasGrid.tsx` owns a `CanvasStage` and is the thing everything else
 talks to:
+
 - Subscribes to `useGridStore` with `useShallow` for `[rows, cols, cellSize, cells, start, goal]`.
-- Two `useEffect`s, each debounced through `useRaf()` (coalesces multiple state changes
-  within one animation frame into a single draw call):
-  1. redraw the **base** layer via `painters.drawBaseScene(...)` whenever grid data changes.
-  2. **clear** the overlay layer whenever grid *dimensions* change (`rows/cols/cellSize` —
-     note this effect's deps are narrower than the base-redraw effect's).
+- One `useEffect`, debounced through `useRaf()` (coalesces multiple state changes within one
+  animation frame into a single draw call), redraws the **base** layer via
+  `painters.drawBaseScene(...)` whenever grid data changes. It does **not** touch the overlay:
+  every dimension change (`reset`/`resize`) bumps `gridVersion`, and the controller's rebuild
+  clears and repaints the overlay itself (see §7). A separate overlay clear here would run a
+  frame later and wipe the repainted path.
 - Exposes `CanvasGridHandle` (`getBaseCtx`, `getOverlayCtx`, `clearOverlay`, `redrawBase`) via
-  `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and passes to `Toolbar`.
-- Owns all pointer interaction (see §5).
+  `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and hands to `useAlgoController`.
+- Owns all pointer interaction (see §9).
 
 ### Painters (`features/painters/`) — pure drawing functions, no state
 
@@ -111,7 +203,8 @@ talks to:
   color, with a 0.25px overdraw fudge to avoid antialiasing seams between adjacent same-kind
   cells) → `drawGridLines` (skips the line segment between two adjacent wall cells, so wall
   blocks render as solid contiguous shapes) → outer border → `drawMarkers` (start = arrow
-  glyph, goal = ringed dot).
+  glyph, goal = ringed dot). `drawStartMarker`/`drawGoalMarker` are exported on their own too:
+  the legend draws its Start/Goal swatches with them, so the legend can't drift from the grid.
 - `overlayPainter.ts`: `paintAlgoEvent` switches on `AlgoEvent.type` and fills one cell
   (`frontier` color for `enqueue`, `visited` color for `visit`); `path` events are only
   instant-painted if `drawPathInstant` is passed (otherwise the runner leaves it to
@@ -126,13 +219,16 @@ talks to:
 ## 4. Algorithms & the event-generator pattern
 
 `types/algo.ts`:
+
 ```ts
-type AlgoEvent = {type:'enqueue', at:Coord} | {type:'visit', at:Coord} | {type:'path', nodes:Coord[], visited:number};
+type AlgoEvent =
+    { type: 'enqueue'; at: Coord } | { type: 'visit'; at: Coord } | { type: 'path'; nodes: Coord[]; visited: number };
 type PathFinder = (grid: GridSnapShot) => Generator<AlgoEvent, void, void>;
 ```
 
 Every algorithm in `features/algo/*.ts` (`bfs`, `dfs`, `dijkstra`, `bidirectionalBfs`) is a
 generator function matching `PathFinder`. Shape is consistent across all four:
+
 1. Build local closures over the snapshot: `id(coord)`, `inb(coord)`, `isWall(coord)`,
    `getCoord(id)` — **re-implemented per file** rather than shared.
 2. Seed the frontier structure (`Queue` for bfs/bidirectional, plain array-as-stack for dfs,
@@ -162,12 +258,19 @@ array once up front and hand algorithms an immutable view.
 ## 5. Maze generators & the same pattern, different event set
 
 `types/mazeGenerator.ts`:
+
 ```ts
-type MazeGeneratorEvent = {type:'fill-wall'} | {type:'clear-wall'} | {type:'carve', at:Coord} | {type:'wall', at:Coord} | {type:'done'};
+type MazeGeneratorEvent =
+    | { type: 'fill-wall' }
+    | { type: 'clear-wall' }
+    | { type: 'carve'; at: Coord }
+    | { type: 'wall'; at: Coord }
+    | { type: 'done' };
 type MazeGenerator = (rows: number, cols: number) => Generator<MazeGeneratorEvent, void, void>;
 ```
 
 `features/mazes/*.ts`:
+
 - `random.ts` (`randomGenerator`): clears walls, then for every even-coordinate-skip cell,
   probabilistically emits a `wall` event (`wall_prob = 0.35`).
 - `floodFill.ts`: fills walls, then a randomized iterative DFS backtracker over the
@@ -185,7 +288,7 @@ type MazeGenerator = (rows: number, cols: number) => Generator<MazeGeneratorEven
   factory three times with different skew probabilities (0.5 default, 0.7 vertical-skewed,
   0.3 horizontal-skewed) to register three distinct maze options from one implementation.
 
-All maze generators operate on the *lattice coordinates directly* (no `GridSnapShot`
+All maze generators operate on the _lattice coordinates directly_ (no `GridSnapShot`
 needed since they don't read existing walls) — they take `(rows, cols)` and yield
 coordinate-only events, which is why `useMazeGenerator` can restore/relocate start & goal
 independently after the run.
@@ -204,47 +307,75 @@ piece of code that both algorithms and mazes are played back through; neither `A
   `opts.onFinish?.()`.
 - `pause()`: cancels the rAF and flips `running=false` (generator position is preserved —
   resuming continues exactly where it left off, since it's a real JS generator).
-- `step()`: pulls exactly one event, independent of `running` state.
+- `step()`: pulls exactly one event and leaves the runner paused (it stops a running loop).
 - `skipToEnd()`: drains the generator synchronously in a `while` loop (no rAF), firing
   `onEvent` for every remaining event — this is what makes "grid edited while a finished
   algorithm's overlay is stale" resolve instantly rather than by dropping frames.
 - `setSpeed(eps)`: updates the closure variable read by the next `tick`; takes effect
   immediately, no restart needed.
-- `getStatus()` mirrors `AlgoStatus` (`initial|running|paused|done`).
+- `getStatus()` returns its `AlgoStatus` (`initial|running|paused|done`).
+- `onStatusChange(status)` (option): called on every status **change**, including the run
+  finishing on its own inside a frame, but not for the initial status. Every transition goes
+  through one internal `setStatus`, so no code path can forget to report. The runner is the
+  single source of truth for status; callers never set one of their own.
 
 ## 7. `useAlgoController` — orchestrates algorithm playback
 
 This is the biggest piece of glue. Responsibilities:
-- **Runner cache**: `runners: Map<algoKey, {runner, buildVersion}>`. Switching the selected
-  algorithm (`setAlgorithm`) does *not* discard other algorithms' progress — each key keeps
-  its own generator+runner until the grid changes underneath it.
+
+- **Selected vs active**: the _selected_ algorithm and speed live in `useSettingsStore` (§2); the
+  controller owns only the _active_ run, the one on screen (`currentAlgoRef` + `runAlgo` state).
+  Changing the selection doesn't touch the active run. `getOrCreateCurrent()` decides which
+  runner a control acts on: the active one while it is running (even if another algorithm was
+  selected meanwhile) or paused on the selected algorithm; otherwise a fresh run of the selected
+  algorithm. The selection is read with `getState()` rather than subscribed to, so it takes
+  effect when a control is used, not when the dropdown changes. `pause()` acts on the active
+  runner directly and never creates one.
+- **Runner bookkeeping**: `runners: Map<algoKey, {runner, buildVersion}>`. Starting a run cleans
+  up the previous one (`cleanupPreviousRun`: pause, cancel the path animation, clear the
+  overlay, reset stats, drop it from the map), so the map holds at most the active run. (A
+  single `activeRef` would say this more directly; planned for the refactor.)
+- **Speed**: subscribes to the store's preset and applies it to the active runner in an effect,
+  so a change takes effect mid-run; `speedRef` gives new runners the current speed.
 - **Grid-version invalidation**: `getOrCreateCurrent()` compares the cached runner's
   `buildVersion` against the live `gridVersion` (from `useGridStore`); a mismatch triggers a
   fresh `createRunnerFor`. A separate `useEffect` watches `gridVersion` directly: if the
-  *currently displayed* algorithm's cached build is stale, it immediately rebuilds — and if
+  _currently displayed_ algorithm's cached build is stale, it immediately rebuilds — and if
   the old runner had already finished (`AlgoStatus.done`), the rebuild is played back
   **instantly** (`instant=true` → `drawPathInstant` + `r.skipToEnd()`) so editing the grid
   after a completed run doesn't require re-clicking Visualize to see the corrected path.
+  The rebuild uses the **active** algorithm, not the selected one, since the active run is what
+  is on screen.
+  If the old runner was **running** (e.g. the grid was resized mid-run), the run is abandoned:
+  the rebuild leaves status `initial` (ready) and the controller releases `gridLock`, which `play()`
+  took. It releases the lock only in that case, because `gridLock` is shared with the maze
+  generator, and a resize mid-maze must not let the user paint over a half-carved maze. The
+  runner's status is read _before_ the rebuild, since pausing a running runner changes it.
 - **Event → paint wiring** (`getEventHandler`): grabs the overlay ctx once per snapshot, and
   returns a closure that calls `paintAlgoEvent` for every event, tracks `visitedApprox`
   (incremented on `visit`), and on the terminal `path` event: sets `pathLen`, unlocks the
   grid (`setGridLock(false)`), and — unless `instant` — cancels any prior path animation and
   starts a new one via `animateFinalPath`, whose per-frame callback keeps the start/goal
   markers redrawn on top (since the overlay animation paints over them cell-by-cell).
-- **Status state machine**: `'idle' | 'ready' | 'running' | 'paused' | 'done'`, exposed to the
-  toolbar. `play()` locks the grid; `pause()`/finishing unlocks it.
-- **`clear()`**: pauses the current runner, rebuilds it fresh from the current snapshot
-  (resets `visitedApprox`/`pathLen`), and clears the overlay — used both by the toolbar's
-  "Clear path" button and internally before starting a maze generation.
+- **Status**: `AlgoStatus | undefined` (`undefined` = no run yet), set **only** from the
+  runner's `onStatusChange`; controls never set it. A new runner reports nothing at creation,
+  so `createRunnerFor` writes its starting status (`initial`) itself, _after_
+  `cleanupPreviousRun`: pausing the old runner reports `paused`, and the later write wins. This
+  is safe because a paused runner never reports again (its frame loop is cancelled). `play()`
+  locks the grid; `pause()`/finishing unlocks it.
+- **`clear()`**: discards the active run and builds a fresh one for the _selected_ algorithm
+  (status `initial`, stats reset, overlay cleared), so Visualize afterwards starts over rather
+  than resuming. Used by the toolbar's "Clear path" button and before starting a maze.
 - Cleanup on unmount pauses every cached runner and cancels any in-flight path animation.
 
 ## 8. `useMazeGenerator` — orchestrates maze playback
 
 Simpler and structurally different from the algorithm controller: it drives events straight
-into `useGridStore` mutators instead of a canvas painter, because maze cells *are* grid
+into `useGridStore` mutators instead of a canvas painter, because maze cells _are_ grid
 state (walls), not an overlay.
 
 Sequence on `generate(key)`:
+
 1. Pause/discard any previous maze runner + pending cleanup closure.
 2. Snapshot current start/goal, then **remove markers** (`setStart(-1,-1)`, `setGoal(-1,-1)`)
    and **lock the grid** — this both hides the markers during carving and stops the player
@@ -255,24 +386,29 @@ Sequence on `generate(key)`:
    start/goal coordinates (re-snapped through `setStart`/`setGoal`'s nearest-empty-cell logic
    if the maze happened to wall over them), unlock the grid, and `refresh()`.
 5. `runnerRef.current.play()` — maze generation always autoplays (no pause/step controls are
-   wired to it from the toolbar; `AlgoControls.onGenerateMaze` also calls
+   wired to it from the toolbar; `AlgoPickers.onGenerateMaze` also calls
    `algoController.clear()` first so a stale path overlay doesn't linger under the new maze).
 
 ## 9. Pointer interaction (`CanvasGrid`)
 
 Single-pointer state machine via `DragMode` (`None | Paint | MoveStart | MoveGoal`), driven
-by native Pointer Events (`onPointerDown/Move/Up/Leave`) with `setPointerCapture` so drags
+by native Pointer Events (`onPointerDown/Move/Up/Leave/Cancel`) with `setPointerCapture` so drags
 tracked outside the canvas bounds still deliver move events.
 
 - `hitCell(e)`: converts client coords to `{r,c}` via the wrapper's bounding rect and
   `cellSize` (no rounding/clamping to grid bounds — out-of-range is filtered by `paintAt`).
 - `onPointerDown`: no-ops if `gridLock`. If the hit cell is the start or goal marker, enters
-  `MoveStart`/`MoveGoal` drag mode. Otherwise enters `Paint` mode, choosing the brush
-  (`Erase` if right mouse button or Alt is held, else `Wall`) and paints immediately.
+  `MoveStart`/`MoveGoal` drag mode. Otherwise enters `Paint` mode, choosing the brush once
+  for the whole drag: `Erase` if the drag starts on a wall (so touch, with no right button or
+  Alt, can erase), or with the right mouse button or Alt held; else `Wall`. Then paints
+  immediately. The start cell is bounds-checked first: cells are a flat array, so an
+  out-of-range column would read the next row's cell.
 - `onPointerMove`: continues painting or dragging the active marker per `dragMode`, calling
   `api.refresh()` after every move to bump `gridVersion` (this is what invalidates cached
   algorithm runners live, mid-drag).
-- `onPointerUp`/`onPointerLeave`: releases pointer capture, resets `dragMode` to `None`.
+- `onPointerUp`/`onPointerLeave`/`onPointerCancel`: releases pointer capture, resets `dragMode`
+  to `None` (cancel: the browser or OS took over the gesture, so no `pointerup` will follow).
+- The wrapper sets `touch-action: none`, so a touch drag paints instead of scrolling the page.
 - `paintAt`: guards bounds and refuses to paint over the start/goal cell; no-ops if the cell
   is already the target kind (avoids redundant store writes during a drag).
 - Right-click context menu is suppressed (`onContextMenu` → `preventDefault`) since
@@ -280,30 +416,33 @@ tracked outside the canvas bounds still deliver move events.
 
 ## 10. End-to-end flow: clicking "Visualize"
 
-1. `AlgoControls`'s Visualize button calls `algoController.play()`.
-2. `play()` → `getOrCreateCurrent()`: if no cached runner for `algoKey`, or the grid changed
-   since it was built, or it already finished, build a fresh one via `createRunnerFor`.
-3. `createRunnerFor`: pauses whatever runner was "current", snapshots the grid
-   (`getGridSnapshot`, returns `null` if start/goal invalid — controller bails out), clears
-   the overlay canvas, instantiates the algorithm generator (`algo(snap)`), wraps it in
-   `createRunner` with the current `speedRef` and an `onFinish` fallback, caches it keyed by
-   `algoKey` + the snapshot's `gridVersion`.
+1. `PlaybackControls`'s Visualize button calls `algo.play()` on the controller `GridPage` owns.
+2. `play()` → `getOrCreateCurrent()`: keeps the active runner if it can be resumed (see §7);
+   otherwise (no runner, the grid changed since it was built, it finished, or a different
+   algorithm is now selected) builds a fresh one for the selected algorithm via `createRunnerFor`.
+3. `createRunnerFor`: snapshots the grid (`getGridSnapshot`, returns `null` if start/goal
+   invalid — controller bails out), cleans up the previous run (pause, clear the overlay, reset
+   stats), instantiates the algorithm generator (`algo(snap)`), wraps it in `createRunner` with
+   the current `speedRef`, an `onFinish` fallback and `onStatusChange`, records it as the active
+   run with the snapshot's `gridVersion`, and sets status `initial`.
 4. `useGridStore.setGridLock(true)` — pointer painting is now inert.
 5. `runner.play()` starts the rAF tick loop; each tick pulls `eps/60` events and invokes the
    `onEvent` closure from `getEventHandler`, which paints `enqueue`/`visit` cells onto the
    **overlay** canvas immediately (no React render involved — this is why the visualization
    can run at high event rates without janking React).
-6. When the generator yields its terminal `path` event: grid unlocks, `pathLen`/status update
-   (triggers a React re-render of the toolbar only), and `animateFinalPath` takes over with
+6. When the generator yields its terminal `path` event: grid unlocks, `pathLen` updates, and
+   `animateFinalPath` takes over with
    its own independent rAF loop to trace the path cell-by-cell at `pathNps` (240/s default),
-   re-drawing the start/goal markers on top each frame.
+   re-drawing the start/goal markers on top each frame. When the generator then returns, the
+   runner reports `done` through `onStatusChange`.
 7. Meanwhile the **base** layer is untouched throughout — it only redraws in response to
    `useGridStore` changes (wall edits, marker moves), which is exactly what keeps grid
    editing and algorithm animation on separate, non-interfering render paths.
 
-Editing the grid mid-run: any `setCell`/`setStart`/`setGoal` + `refresh()` bumps
-`gridVersion`. The algorithm controller's `useEffect` on `gridVersion` notices next tick,
-pauses the stale runner, and rebuilds — if the prior run had already reached `done`, the
-rebuild is instantly skipped-to-end so the corrected path reappears without user action;
-otherwise it simply restarts from the new snapshot at `initial` status (the user has to press
-Visualize again to replay, since an in-flight — not-yet-`done` — run is not auto-replayed).
+Changing the grid after a run started: pointer edits are blocked while running (`gridLock`),
+so this happens through edits while paused or finished, or a resize (which can happen mid-run).
+Any `setCell`/`setStart`/`setGoal` + `refresh()`, or `resize`, bumps `gridVersion`. The
+controller's `useEffect` on `gridVersion` rebuilds the active run from the new snapshot — if the
+prior run had already reached `done`, the rebuild is instantly skipped-to-end so the corrected
+path reappears without user action; otherwise it is left at `initial` status (press Visualize
+again; an unfinished run is not auto-replayed).

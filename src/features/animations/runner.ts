@@ -4,6 +4,8 @@
 // - createRunner: wraps a generator, pulling `speed` events/sec per animation frame
 // - play/pause/step/skipToEnd/setSpeed all operate on the same underlying generator state,
 //   which is what makes those controls "free" — no algorithm-specific code needed
+// - The runner is the source of truth for its status; onStatusChange reports every transition
+//   (including finishing on its own), so callers never set a status of their own
 
 import { AlgoStatus } from '@/types/algo';
 
@@ -22,6 +24,7 @@ type RunnerOptions = {
     maxBatchPerFrame?: number; // safety cap; default 1000
     autoplay?: boolean; // default false
     onFinish?: () => void; // optional callback on completion
+    onStatusChange?: (status: AlgoStatus) => void; // on every change; not for the initial status (use getStatus)
 };
 
 export function createRunner<TYield>(
@@ -37,6 +40,11 @@ export function createRunner<TYield>(
     const maxBatch = Math.max(1, opts.maxBatchPerFrame ?? 1000);
 
     const perFrame = () => Math.min(maxBatch, Math.max(1, Math.ceil(eps / 60)));
+    const setStatus = (next: AlgoStatus) => {
+        if (next === status) return;
+        status = next;
+        opts.onStatusChange?.(status);
+    };
 
     const tick = () => {
         if (!running) return;
@@ -46,7 +54,7 @@ export function createRunner<TYield>(
             const res = gen.next();
             if (res.done) {
                 running = false;
-                status = AlgoStatus.done;
+                setStatus(AlgoStatus.done);
                 opts.onFinish?.();
                 return;
             }
@@ -59,23 +67,23 @@ export function createRunner<TYield>(
         play() {
             if (running) return;
             running = true;
-            status = AlgoStatus.running;
+            setStatus(AlgoStatus.running);
             rafId = requestAnimationFrame(tick);
         },
         pause() {
             if (!running) return;
             running = false;
-            status = AlgoStatus.paused;
+            setStatus(AlgoStatus.paused);
             cancelAnimationFrame(rafId);
         },
         step() {
             running = false;
             const res = gen.next();
             if (!res.done) {
-                status = AlgoStatus.paused;
+                setStatus(AlgoStatus.paused);
                 onEvent(res.value);
             } else {
-                status = AlgoStatus.done;
+                setStatus(AlgoStatus.done);
                 opts.onFinish?.();
             }
             return res;
@@ -87,7 +95,7 @@ export function createRunner<TYield>(
                 if (!res.done) onEvent(res.value);
             } while (!res.done);
 
-            status = AlgoStatus.done;
+            setStatus(AlgoStatus.done);
             running = false;
             controls.pause();
             opts.onFinish?.();
