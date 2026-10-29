@@ -161,3 +161,20 @@ chosen from the screen.
   grid's own painters and palette, so it always matches the grid (visited is drawn over
   frontier, as on the grid). Wrapping row on phones, a column on desktop.
 - **Stats**: one row of label-over-value cells on phones, a column on desktop (see §5).
+
+## 8. Info dialog ("About AlgoViz")
+
+The **ⓘ** button next to the title opens a dialog with four short slides: what AlgoViz is, how
+to use it, a line per algorithm, and about (author, GitHub link). Arrows on both sides, dots to
+jump to a slide, and the ← / → keys page through it; it always opens on the first slide.
+
+- **First visit:** it opens on its own the first time the app is loaded, and is remembered as
+  seen once the user closes it (`localStorage` key `algoviz:info-seen`). If storage is blocked
+  (e.g. Safari private mode), it simply opens again next time.
+- It's a native modal `<dialog>`: Esc, the X or a click outside closes it, focus stays inside
+  while open, and the page behind is inert. It takes no layout space, so it doesn't disturb a
+  run in progress.
+- The algorithm names come from the registry (`algoLabels`); each needs a one-line description
+  in `ui/InfoModal.tsx` (a test checks every registered algorithm has one).
+- Implementation: generic shell `components/Modal.tsx`, content `ui/InfoModal.tsx`, state
+  `features/hooks/useInfoModal.ts`.

@@ -8,8 +8,10 @@ feature-level behavior.
 
 ```
 main.tsx → App.tsx
-  └─ ui/Grid.tsx  .page   (owns: gridRef, useAlgoController, useMazeGenerator, useResponsiveGrid)
-       ├─ [header]   Toolbar <header> (algo, maze)
+  └─ ui/Grid.tsx  .page   (owns: gridRef, useAlgoController, useMazeGenerator, useResponsiveGrid, useInfoModal)
+       ├─ (no area)  ui/InfoModal → components/Modal <dialog>   (top layer; takes no layout space)
+       ├─ [header]   Toolbar <header> (algo, maze, toggleModal)
+       │               ├─ info button (InfoIcon) → toggleModal
        │               └─ AlgoPickers: Dropdown (algorithm), Dropdown (maze/pattern)
        ├─ [grid]     <main> (padded)
        │               └─ grid box (no padding; measured by useResponsiveGrid)
@@ -77,6 +79,11 @@ below xl (phones, tablets, small laptops)      xl and up (≥ 1280px)
   what `useResponsiveGrid` measures, and load (border box) and `ResizeObserver` (content box)
   must see the same size. It centres the canvas with `items-center-safe justify-center-safe`
   and `overflow-auto`, so a grid held at `MIN_CELL` scrolls instead of being clipped.
+- **The info dialog takes no layout space.** It is a modal `<dialog>` (`showModal()`, so it sits
+  in the browser's top layer), not a grid area, so opening it can't resize the grid or stop a run.
+- **Theme: light only.** daisyUI is configured with `themes: light --default` in `index.css`.
+  Its default would switch daisyUI's base colours with the OS dark mode while the app's own
+  colours and the canvas palette stay light, giving dark text on a dark modal box.
 - **Phone details:** the speed menu opens upward from the bottom bar (`d-dropdown-top
 d-dropdown-end`, `xl:d-dropdown-bottom`); controls are at least 44px tall; long labels have a
   short phone form (`Clear`, `Mazes`) with an `aria-label`/`label` that keeps one accessible
@@ -150,6 +157,17 @@ across renders without forcing re-renders:
   synchronous reads in callbacks), `cancelPathAnimRef`, `sawPathEventRef`, `speedRef`.
 - `useMazeGenerator`: `runnerRef`, a cleanup closure ref that restores start/goal.
 - `CanvasGrid`: `dragMode` (paint / move-start / move-goal), `brushRef` (wall vs erase).
+- `useInfoModal` (`features/hooks/`): the info dialog's `open` state, owned by `GridPage` and
+  shared by the toolbar's button and `InfoModal`. Its initial value comes from `localStorage`
+  (`algoviz:info-seen`): the dialog opens on a first visit and is marked seen when it is closed.
+  This is the only thing the app persists.
+
+**Modal open state** (`components/Modal`): the parent's `open` prop is the truth and the native
+`<dialog>` follows it (an effect calls `showModal()`/`close()`, guarded on `dialog.open` for Strict
+Mode). When the browser closes it on its own (Esc, the X or the backdrop, all
+`<form method="dialog">`), the native `close` event calls `onModalClosed` so the parent's state
+follows back. Without that, the parent would still think it's open and the info button would do
+nothing after an Esc.
 
 ## 3. Canvas rendering layer
 

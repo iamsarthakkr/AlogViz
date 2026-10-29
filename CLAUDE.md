@@ -21,11 +21,11 @@ pattern that both pathfinding algorithms and maze generators share.
 - **Vite 8** (static SPA build, `@vitejs/plugin-react-swc`), **React 19**
 - **TypeScript**, strict mode
 - **Zustand 5** for state (two stores, no middleware/persistence)
-- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes) for chrome (toolbar, dropdown); the grid itself is drawn on `<canvas>`, not DOM
+- **Tailwind CSS 4** + **daisyUI 5** (`d-` prefixed classes, **light theme only**) for chrome (toolbar, dropdown, modal); the grid itself is drawn on `<canvas>`, not DOM
 - **Prettier** + ESLint (flat config: `typescript-eslint` + `react-hooks` + `react-refresh`)
 - One path alias (`vite.config.ts` + `tsconfig.app.json`): `@/*` → `src/*` — import as `@/features/...`, `@/ui/...`
 
-Tests: **Vitest** + Testing Library (jsdom), in `tests/` — see "Tests" below. No backend/API/database — everything is client-side, in-memory, and non-persistent (a refresh resets the grid).
+Tests: **Vitest** + Testing Library (jsdom), in `tests/` — see "Tests" below. No backend/API/database — everything is client-side and in-memory (a refresh resets the grid). The one thing persisted is whether the info dialog has been seen (`localStorage`, see `useInfoModal`).
 
 ## Running it
 
@@ -54,9 +54,11 @@ src/
   main.tsx             Entry: fonts, index.css, renders <App /> in StrictMode
   App.tsx              Root component (just renders ui/Grid)
   index.css            Tailwind + daisyUI setup, theme tokens, the .page grid layout (areas per breakpoint)
-  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator; places every piece in the .page grid layout
+  ui/Grid.tsx           Top-level page: owns the algo controller + maze generator + info dialog state; places every piece in the .page grid layout
   ui/Legend.tsx, Stats.tsx  Side panels: legend (swatches drawn by the painters), stats of the active run
-  components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
+  ui/InfoModal.tsx      The "About AlgoViz" carousel (what it is, how to use, algorithms, about) inside components/Modal
+  components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown, Modal); content comes in as props/children
+  icons/                Small SVG icon components (Info, Close, Chevron): aria-hidden, drawn in currentColor
   features/
     store/               Zustand stores: useGridStore (grid data), useSettingsStore (UI state)
     CanvasGrid/          The interactive canvas: pointer handling, base-layer draw scheduling
@@ -65,7 +67,8 @@ src/
     mazes/               Maze/pattern generators as generator functions (prims, recursiveDivision, ...)
     animations/          The generator "runner" (rAF playback engine) + hooks that drive algo/maze runs
     Toolbar/             AlgoPickers (algorithm/maze dropdowns), PlaybackControls (play/pause/step/clear, speed)
-    hooks/               useRaf (coalesce into one rAF callback), useResponsiveGrid (sizes the grid to its box)
+    hooks/               useRaf (coalesce into one rAF callback), useResponsiveGrid (sizes the grid to its box),
+                         useInfoModal (info dialog open state + first-visit flag in localStorage)
   store/                 Plain (non-Zustand) data structures: ring-buffer Queue, binary min-heap
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
   utils/                 Small pure helpers (grid init/snap, grid sizing in layout.ts, clamp, speed presets, constants)

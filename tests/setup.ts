@@ -40,8 +40,21 @@ globalThis.ResizeObserver = class {
     disconnect() {}
 };
 
+// jsdom has no showModal/close. Mirror what the browser does with the `open` attribute and the
+// `close` event (which is what components listen to), without the top layer or focus trapping.
+HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+};
+HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    if (!this.open) return;
+    this.open = false;
+    this.dispatchEvent(new Event('close'));
+};
+
 // Both stores are module singletons, so state would otherwise leak between tests.
 beforeEach(() => {
+    // jsdom's localStorage lives for the whole file; clear it so "first visit" state can't leak
+    localStorage.clear();
     // not reset(): it bumps gridVersion, which would carry over from test to test
     useGridStore.setState(useGridStore.getInitialState(), true);
     useSettingsStore.setState(useSettingsStore.getInitialState(), true);

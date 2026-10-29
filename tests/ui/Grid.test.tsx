@@ -58,6 +58,36 @@ describe('Grid page', () => {
         });
     });
 
+    // the toolbar's info button and the InfoModal share the page's open state (useInfoModal)
+    describe('info dialog', () => {
+        const infoDialog = () => screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement;
+        const infoButton = () => screen.getByRole('button', { name: 'About AlgoViz' });
+
+        it('opens on a first visit, and the header button reopens it after it is closed', async () => {
+            render(<Grid />);
+            expect(infoDialog().open).toBe(true);
+
+            // jsdom doesn't submit <form method="dialog">, so close the way the browser would
+            act(() => infoDialog().close());
+            expect(infoDialog().open).toBe(false);
+
+            // the page heard the close: the button opens it again
+            await userEvent.click(infoButton());
+            expect(infoDialog().open).toBe(true);
+        });
+
+        it('stays closed for a returning visitor until the header button is pressed', async () => {
+            const first = render(<Grid />);
+            act(() => infoDialog().close());
+            first.unmount();
+
+            render(<Grid />);
+            expect(infoDialog().open).toBe(false);
+            await userEvent.click(infoButton());
+            expect(infoDialog().open).toBe(true);
+        });
+    });
+
     const renderAndVisualize = async () => {
         render(<Grid />);
         const overlay = screen.getByRole('main').querySelectorAll('canvas')[1].getContext('2d') as unknown as MockCtx;

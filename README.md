@@ -11,6 +11,8 @@ watch a pathfinding algorithm (or generate a maze) animate step by step on canva
   the start and goal markers to move them
 - **Legend and live stats**: what each colour means, plus the run's status, visited cells and
   path length
+- **Built-in guide**: an "About" dialog (opens on the first visit) explaining how to use it and
+  how each algorithm behaves
 - **Responsive**: works on phones, tablets and desktops; touch to draw walls, and the grid is
   sized to the screen on load (resizing rescales it without losing your walls)
 

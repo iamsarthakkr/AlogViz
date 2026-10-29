@@ -5,6 +5,7 @@
 
 import { Callback1 } from '@/types/common';
 import { useCallback } from 'react';
+import { ChevronIcon } from '@/icons/ChevronIcon';
 
 type Props = {
     title: React.ReactNode;
@@ -40,23 +41,7 @@ export const Dropdown = (props: Props) => {
                 className="w-full min-w-0 px-3 py-2 cursor-pointer border-none outline-none rounded-md bg-primary text-white flex items-center justify-center text-sm hover:text-secondary"
             >
                 <span className="truncate">{title}</span>
-                <svg
-                    className="w-4 h-4 ms-1.5 -me-1.5 shrink-0"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="m19 9-7 7-7-7"
-                    />
-                </svg>
+                <ChevronIcon dir="down" className="size-4 ms-1.5 -me-1.5 shrink-0" />
             </div>
             <ul
                 tabIndex={0}

@@ -1,3 +1,8 @@
+// Authored by - Sarthak Kumar
+//
+// main: entry point. Loads the fonts and global CSS, and renders <App /> in StrictMode into #root
+// (fails loudly if index.html is missing it).
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/montserrat';

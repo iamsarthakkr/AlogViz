@@ -1,3 +1,9 @@
+// Authored by - Sarthak Kumar
+//
+// constants: grid sizing limits for utils/layout.ts, and the initial grid the store starts with
+// before useResponsiveGrid measures the page and picks the real dimensions.
+
+// initial grid (the store's default); replaced on load by pickGridLayout
 export const ROWS = 35;
 export const COLS = 61;
 export const CELL_SIZE = 20;

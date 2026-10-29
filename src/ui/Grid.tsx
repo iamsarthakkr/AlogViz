@@ -3,6 +3,8 @@
 // Grid: top-level page composition (the whole app is this one view).
 // - Owns the single algorithm controller and maze generator, and passes them down as props:
 //   every control that drives a run must share one instance (two hook calls = two runners)
+// - Owns the info dialog's open state (useInfoModal): the toolbar's button opens it, InfoModal
+//   shows it. The dialog has no grid area; as a modal it sits in the browser's top layer
 // - The CanvasGrid ref goes only to the controller (which paints the overlay) and CanvasGrid;
 //   the controls never touch the canvas directly
 // - Layout is the .page grid in index.css: each piece is rendered once and placed by its named
@@ -19,10 +21,13 @@ import { mazes } from '@/features/mazes';
 import { algorithms } from '@/features/algo';
 import { Stats } from './Stats';
 import { Legend } from './Legend';
+import { InfoModal } from './InfoModal';
+import { useInfoModal } from '@/features/hooks/useInfoModal';
 
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
     const boxRef = useRef<HTMLDivElement>(null);
+    const { modalOpen, toggleModal, onModalClosed } = useInfoModal();
     const algoController = useAlgoController(gridRef, algorithms, {
         animatePath: true,
     });
@@ -32,7 +37,13 @@ export default function GridPage() {
 
     return (
         <div className="page">
-            <Toolbar className="[grid-area:header]" algo={algoController} maze={mazeGenerator} />
+            <InfoModal open={modalOpen} onModalClosed={onModalClosed} />
+            <Toolbar
+                className="[grid-area:header]"
+                algo={algoController}
+                maze={mazeGenerator}
+                toggleModal={toggleModal}
+            />
 
             <main className="[grid-area:grid] min-h-0 min-w-0 p-4 flex">
                 <div

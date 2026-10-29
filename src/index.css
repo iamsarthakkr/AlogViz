@@ -1,6 +1,15 @@
+/* Authored by - Sarthak Kumar
+
+   index.css: Tailwind + daisyUI setup, the app's colour tokens, and the .page grid layout (named
+   areas, one desktop breakpoint at xl). See ARCHITECTURE.md §1 "Page layout". */
+
 @import 'tailwindcss';
+/* Light theme only: the app has no dark mode (its own --background/--foreground and the canvas
+   palette are light), so daisyUI must not switch its base colours with the OS setting, or its
+   components (e.g. the modal box) turn dark under the app's dark text. */
 @plugin "daisyui" {
     prefix: 'd-';
+    themes: light --default;
 }
 
 :root {
