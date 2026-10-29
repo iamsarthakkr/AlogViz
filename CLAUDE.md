@@ -70,8 +70,10 @@ src/
   types/                 Shared TypeScript types (grid, algo, mazeGenerator, settings, common)
   utils/                 Small pure helpers (grid init/snap, grid sizing in layout.ts, clamp, speed presets, constants)
 tests/                   Mirrors src/ one-to-one (src/features/algo/bfs.ts → tests/features/algo/bfs.test.ts)
-  setup.ts               jest-dom, canvas getContext stub, resets both Zustand stores before each test
-  helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx
+  setup.ts               jest-dom, recording canvas ctx per canvas (a width/height change records a clear),
+                         no-op ResizeObserver, resets both Zustand stores before each test
+  helpers/               ASCII grid parser + path/maze checkers, seeded Math.random, fake rAF, recording canvas ctx,
+                         fake ResizeObserver (resize.ts), fake algo controller / maze generator (controllers.ts)
 ```
 
 Note: there are **two unrelated things called "store"** in this repo — `src/store/` (data
@@ -119,6 +121,10 @@ remaining friction is the per-file `id`/`inb`/`isWall` helpers and the parallel 
   imperatively by the runner's event callback, bypassing React re-renders for performance).
 - `gridLock` (in `useGridStore`) is the mechanism that disables pointer editing while an
   algorithm or maze generator is running.
+- One copy of every piece of state. The user's **selections** (algorithm, speed) live only in
+  `useSettingsStore`: the dropdowns write there and `useAlgoController` reads from there, never
+  keeping its own copy. A run's **status** comes only from the runner (`onStatusChange`);
+  controls never set it. Details in ARCHITECTURE.md §2 and §7.
 - Component/hook pairs follow a `Thing.tsx` + `useThing.ts` split with a barrel `index.ts`
   re-exporting the public surface (see `CanvasGrid/`).
 - Responsive styles are mobile-first with **one desktop breakpoint, `xl:`** (1280px), matching

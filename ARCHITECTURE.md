@@ -38,9 +38,12 @@ controller arrives as a prop, the toolbar components are tested with a fake cont
 (`tests/helpers/controllers.ts`).
 
 Re-render cost: controller state (e.g. `visitedApprox`, updated on every visit event) lives in
-`GridPage`, so a running algorithm re-renders the whole page each frame. Its children's effects
-don't re-run (their deps are unchanged) and the overlay is painted imperatively, but keep
-anything expensive out of that render path (or `memo` it).
+`GridPage`, so a running algorithm re-renders the whole page. React batches every `setState`
+inside one rAF callback, so that is **one commit per frame**, not one per event (profiled: about
+200 commits for a fast BFS run, 0.1–2 ms each in dev mode). Children's effects
+don't re-run (their deps are unchanged; the legend swatches rely on `getCtx` being stable) and
+the overlay is painted imperatively, but keep anything expensive out of that render path (or
+`memo` it).
 
 ### Page layout (`.page` in `index.css`)
 
@@ -152,7 +155,9 @@ across renders without forcing re-renders:
 
 `components/useCanvasLayer.ts` is the low-level hook: given `rows/cols/cellSize`, it sizes a
 `<canvas>` for devicePixelRatio (`ctx.setTransform(dpr,0,0,dpr,0,0)`, disables image
-smoothing for crisp cell edges) and exposes `getCtx()`. It sizes the canvas in a
+smoothing for crisp cell edges) and exposes `getCtx()`, a **stable** function (`useCallback`),
+so callers can list it in effect deps without re-running the effect on every render. Besides
+the grid, `ui/Legend.tsx` uses it for its swatches. It sizes the canvas in a
 **`useLayoutEffect`**: assigning `canvas.width` wipes its pixels, and layout effects run before
 every passive effect, so the canvas is resized first and the algorithm controller's
 `useEffect` then repaints onto the resized canvas (with a plain `useEffect` the resize would
@@ -172,7 +177,7 @@ talks to:
   frame later and wipe the repainted path.
 - Exposes `CanvasGridHandle` (`getBaseCtx`, `getOverlayCtx`, `clearOverlay`, `redrawBase`) via
   `useImperativeHandle` — this is the handle `ui/Grid.tsx` holds and hands to `useAlgoController`.
-- Owns all pointer interaction (see §5).
+- Owns all pointer interaction (see §9).
 
 ### Painters (`features/painters/`) — pure drawing functions, no state
 
@@ -180,7 +185,8 @@ talks to:
   color, with a 0.25px overdraw fudge to avoid antialiasing seams between adjacent same-kind
   cells) → `drawGridLines` (skips the line segment between two adjacent wall cells, so wall
   blocks render as solid contiguous shapes) → outer border → `drawMarkers` (start = arrow
-  glyph, goal = ringed dot).
+  glyph, goal = ringed dot). `drawStartMarker`/`drawGoalMarker` are exported on their own too:
+  the legend draws its Start/Goal swatches with them, so the legend can't drift from the grid.
 - `overlayPainter.ts`: `paintAlgoEvent` switches on `AlgoEvent.type` and fills one cell
   (`frontier` color for `enqueue`, `visited` color for `visit`); `path` events are only
   instant-painted if `drawPathInstant` is passed (otherwise the runner leaves it to
@@ -283,7 +289,7 @@ piece of code that both algorithms and mazes are played back through; neither `A
   `opts.onFinish?.()`.
 - `pause()`: cancels the rAF and flips `running=false` (generator position is preserved —
   resuming continues exactly where it left off, since it's a real JS generator).
-- `step()`: pulls exactly one event, independent of `running` state.
+- `step()`: pulls exactly one event and leaves the runner paused (it stops a running loop).
 - `skipToEnd()`: drains the generator synchronously in a `while` loop (no rAF), firing
   `onEvent` for every remaining event — this is what makes "grid edited while a finished
   algorithm's overlay is stale" resolve instantly rather than by dropping frames.
@@ -415,9 +421,10 @@ tracked outside the canvas bounds still deliver move events.
    `useGridStore` changes (wall edits, marker moves), which is exactly what keeps grid
    editing and algorithm animation on separate, non-interfering render paths.
 
-Editing the grid mid-run: any `setCell`/`setStart`/`setGoal` + `refresh()` bumps
-`gridVersion`. The algorithm controller's `useEffect` on `gridVersion` notices next tick,
-pauses the stale runner, and rebuilds — if the prior run had already reached `done`, the
-rebuild is instantly skipped-to-end so the corrected path reappears without user action;
-otherwise it simply restarts from the new snapshot at `initial` status (the user has to press
-Visualize again to replay, since an in-flight — not-yet-`done` — run is not auto-replayed).
+Changing the grid after a run started: pointer edits are blocked while running (`gridLock`),
+so this happens through edits while paused or finished, or a resize (which can happen mid-run).
+Any `setCell`/`setStart`/`setGoal` + `refresh()`, or `resize`, bumps `gridVersion`. The
+controller's `useEffect` on `gridVersion` rebuilds the active run from the new snapshot — if the
+prior run had already reached `done`, the rebuild is instantly skipped-to-end so the corrected
+path reappears without user action; otherwise it is left at `initial` status (press Visualize
+again; an unfinished run is not auto-replayed).

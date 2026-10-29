@@ -71,7 +71,8 @@ or finished run discards it and starts the newly selected algorithm.
 
 Editing the grid (walls/markers) while a **finished** visualization is showing automatically
 re-solves and re-draws the path instantly (no animation replay, no need to press Visualize
-again) — editing while a run is **in progress** simply invalidates it; the user presses
+again). While a run is **in progress** the grid is locked against edits; editing a **paused**
+run, or resizing the window mid-run, discards the unfinished run, and the user presses
 Visualize again to replay against the new grid.
 
 ## 4. Maze & pattern generation
@@ -104,11 +105,11 @@ Behavior common to all patterns:
 
 ## 5. Live run stats
 
-While an algorithm is selected/running, `useAlgoController` tracks and exposes:
+For the active run, `useAlgoController` tracks and exposes:
 
 - `visitedApprox` — count of cells visited so far (increments on every `visit` event).
-- `pathLen` — length of the final path once found (`0` if the generator finishes without ever
-  yielding a `path` with nodes, i.e. no path exists).
+- `pathLen` — the number of cells on the final path (both endpoints included) once found;
+  `undefined` until then, and `0` if the run finishes without reaching the goal.
 - `status` — the runner's `AlgoStatus` (`initial` = ready, `running`, `paused`, `done`), or
   `undefined` before the first run. It comes only from the runner (`onStatusChange`).
 - `runAlgo` — the algorithm of the run these numbers belong to (the active run, which can
@@ -122,7 +123,8 @@ While an algorithm is selected/running, `useAlgoController` tracks and exposes:
 - **Path**: the path length in **steps** (`pathLen - 1`, since `pathLen` counts both
   endpoints); "No path" when the run finished without reaching the goal.
 
-Before the first run, values show a "-" placeholder. Every item is rendered in every state:
+Before the first run, Status and Path show a "-" placeholder (Algo currently shows the selected
+algorithm until the controller's planned `activeRef` refactor leaves it empty). Every item is rendered in every state:
 on phones the stats are an `auto` grid row, so an item appearing or a value wrapping mid-run
 would change the row's height, resize the grid and stop the run. Only the status is an
 `aria-live` region (the visited count changes every frame). `PlaybackControls.tsx` reads
