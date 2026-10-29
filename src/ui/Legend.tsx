@@ -59,13 +59,16 @@ const LegendItem = ({ draw }: LegendItemProps) => {
 type Props = { className?: string };
 
 export const Legend = ({ className = '' }: Props) => (
-    <aside aria-label="Legend" className={`${className} text-sm flex xl:flex-col items-center justify-center`}>
+    <aside
+        aria-label="Legend"
+        className={`${className} text-sm xl:text-base flex xl:flex-col items-center justify-center`}
+    >
         <h2 className="hidden xl:block xl:text-lg font-semibold mb-2">Legend</h2>
         <ul className="flex flex-wrap gap-x-4 gap-y-1 xl:flex-col xl:gap-2">
             {ITEMS.map(({ label, draw }) => (
                 <li key={label} className="flex items-center gap-2">
                     <LegendItem draw={draw} />
-                    <span className="xl:text-lg">{label}</span>
+                    <span>{label}</span>
                 </li>
             ))}
         </ul>

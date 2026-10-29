@@ -43,7 +43,13 @@ export default function GridPage() {
                 </div>
             </main>
 
-            <Stats className="[grid-area:stats] p-4" />
+            <Stats
+                algo={algoController.runAlgo}
+                status={algoController.status}
+                visited={algoController.visitedApprox}
+                pathLen={algoController.pathLen}
+                className="[grid-area:stats] p-4"
+            />
             <Legend className="[grid-area:legend] p-4" />
 
             <div className="[grid-area:controls] bg-primary flex items-center px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] xl:justify-end xl:py-2">

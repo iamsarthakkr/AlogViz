@@ -8,7 +8,7 @@ export function fakeAlgoController(overrides: Partial<AlgoController> = {}): Alg
     return {
         runAlgo: algoLabels[0],
         status: undefined,
-        pathLen: null,
+        pathLen: undefined,
         visitedApprox: 0,
         clear: vi.fn(),
         play: vi.fn(),

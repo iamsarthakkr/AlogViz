@@ -73,6 +73,18 @@ describe('Grid page', () => {
         expect(pathOnScreen(overlay)).toHaveLength(expectedPathLength());
     });
 
+    it('shows the finished run in the stats panel', async () => {
+        await renderAndVisualize();
+        const stats = within(screen.getByRole('complementary', { name: 'Stats' }));
+        const value = (label: string) => stats.getByText(label, { selector: 'dt' }).nextElementSibling;
+
+        expect(value('Algo')).toHaveTextContent(algoLabels[0]);
+        expect(value('Status')).toHaveTextContent('Finished');
+        expect(Number(value('Visited')!.textContent)).toBeGreaterThan(0);
+        // path cells include both endpoints; the panel shows steps between them
+        expect(value('Path')).toHaveTextContent(String(expectedPathLength() - 1));
+    });
+
     // Resizing wipes the canvas and the run is re-solved at the new size; the repaint must come
     // after every clear (canvas resize, overlay clear), or the finished path vanishes
     it('keeps a finished path on screen after the grid is resized', async () => {

@@ -29,7 +29,7 @@ import { speedToEPS } from '@/utils/settings';
 export type AlgoController = {
     runAlgo: string;
     status: AlgoStatus | undefined; // undefined until the first run is created (idle)
-    pathLen: number | null;
+    pathLen: number | undefined;
     visitedApprox: number;
 
     clear: Callback;
@@ -58,7 +58,7 @@ export function useAlgoController(
 
     const [currAlgo, setCurrAlgo] = useState(useSettingsStore.getState().algoKey);
     const [status, setStatus] = useState<AlgoStatus>();
-    const [pathLen, setPathLen] = useState<number | null>(null);
+    const [pathLen, setPathLen] = useState<number>();
     const [visitedApprox, setVisitedApprox] = useState<number>(0);
 
     const runners = useRef(new Map<string, CachedRunner>());
@@ -143,7 +143,7 @@ export function useAlgoController(
             gridRef.current.clearOverlay();
         }
         setVisitedApprox(0);
-        setPathLen(null);
+        setPathLen(undefined);
         sawPathEventRef.current = false;
     }, [gridRef]);
 

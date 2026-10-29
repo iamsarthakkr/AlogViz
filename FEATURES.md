@@ -114,11 +114,19 @@ While an algorithm is selected/running, `useAlgoController` tracks and exposes:
 - `runAlgo` — the algorithm of the run these numbers belong to (the active run, which can
   differ from the dropdown's selection until the next run starts).
 
-These are currently computed and available on the controller but not all surfaced in the
-toolbar UI (`PlaybackControls.tsx` reads `status` for button state, and the speed label from
-`useSettingsStore`; `runAlgo`, `pathLen`
-and `visitedApprox` are plumbed through but not yet rendered: the page has a `Stats` panel
-(`ui/Stats.tsx`) reserved for them, currently a placeholder).
+`ui/Stats.tsx` renders them (`Grid.tsx` passes the values as props):
+
+- **Algo**: `runAlgo` (the run the numbers belong to).
+- **Status**: Ready / Running / Paused / Finished.
+- **Visited**: `visitedApprox`.
+- **Path**: the path length in **steps** (`pathLen - 1`, since `pathLen` counts both
+  endpoints); "No path" when the run finished without reaching the goal.
+
+Before the first run, values show a "-" placeholder. Every item is rendered in every state:
+on phones the stats are an `auto` grid row, so an item appearing or a value wrapping mid-run
+would change the row's height, resize the grid and stop the run. Only the status is an
+`aria-live` region (the visited count changes every frame). `PlaybackControls.tsx` reads
+`status` for its button state.
 
 ## 6. Responsive canvas rendering (crisp at any zoom/DPI)
 
@@ -149,5 +157,5 @@ chosen from the screen.
   controls are at least 44px tall, and the bottom bar clears the iPhone home bar.
 - **Legend**: a swatch per item (Start, Goal, Wall, Frontier, Visited, Path) drawn with the
   grid's own painters and palette, so it always matches the grid (visited is drawn over
-  frontier, as on the grid). Wrapping row on phones, a column on desktop. The **stats** panel
-  is still a placeholder.
+  frontier, as on the grid). Wrapping row on phones, a column on desktop.
+- **Stats**: one row of label-over-value cells on phones, a column on desktop (see §5).

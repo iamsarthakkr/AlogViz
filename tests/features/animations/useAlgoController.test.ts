@@ -67,7 +67,7 @@ describe('useAlgoController', () => {
         const { result } = render();
         expect(result.current.status).toBeUndefined();
         expect(result.current.runAlgo).toBe('BFS');
-        expect(result.current.pathLen).toBeNull();
+        expect(result.current.pathLen).toBeUndefined();
     });
 
     // the runner finishing on its own (not via step/skipToEnd) must still report done,
@@ -177,7 +177,7 @@ describe('useAlgoController', () => {
         act(() => result.current.skipToEnd());
         act(() => result.current.play());
         expect(result.current.status).toBe(AlgoStatus.running);
-        expect(result.current.pathLen).toBeNull();
+        expect(result.current.pathLen).toBeUndefined();
     });
 
     describe('clear', () => {
@@ -187,7 +187,7 @@ describe('useAlgoController', () => {
             act(() => result.current.clear());
             expect(gridRef.current.clearOverlay).toHaveBeenCalled();
             expect(result.current.status).toBe(AlgoStatus.initial);
-            expect(result.current.pathLen).toBeNull();
+            expect(result.current.pathLen).toBeUndefined();
             expect(result.current.visitedApprox).toBe(0);
         });
 
@@ -365,7 +365,7 @@ describe('useAlgoController', () => {
         act(() => result.current.step());
         act(() => useGridStore.getState().refresh());
         expect(result.current.status).toBe(AlgoStatus.initial);
-        expect(result.current.pathLen).toBeNull();
+        expect(result.current.pathLen).toBeUndefined();
     });
 
     // A resize bumps gridVersion (the overlay was wiped and the snapshot's cellSize is stale), so a
@@ -392,7 +392,7 @@ describe('useAlgoController', () => {
 
             resize();
             expect(result.current.status).toBe(AlgoStatus.initial);
-            expect(result.current.pathLen).toBeNull();
+            expect(result.current.pathLen).toBeUndefined();
             expect(locked()).toBe(false);
         });
 

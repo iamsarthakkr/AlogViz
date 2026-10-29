@@ -17,7 +17,7 @@ main.tsx → App.tsx
        │                         └─ CanvasStage (forwardRef → CanvasStageHandle)
        │                              ├─ <canvas> base   (useCanvasLayer)
        │                              └─ <canvas> overlay (useCanvasLayer)
-       ├─ [stats]    ui/Stats <aside>    (placeholder)
+       ├─ [stats]    ui/Stats <aside>    (active run: algorithm, status, visited, path steps)
        ├─ [legend]   ui/Legend <aside>   (swatches drawn by the grid's painters)
        └─ [controls] PlaybackControls (algo): Visualize, Pause/Step, Clear path, Dropdown (speed)
 ```
