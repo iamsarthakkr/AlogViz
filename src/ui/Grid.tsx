@@ -15,22 +15,15 @@ import { CanvasGrid, CanvasGridHandle } from '@/features/CanvasGrid';
 import { PlaybackControls, Toolbar } from '@/features/Toolbar';
 import { useResponsiveGrid } from '@/features/hooks/useResponsiveGrid';
 import { useAlgoController, useMazeGenerator } from '@/features/animations';
-import { speedToEPS } from '@/utils/settings';
 import { mazes } from '@/features/mazes';
 import { algorithms } from '@/features/algo';
-import { useSettingsStore } from '@/features/store';
 import { Stats } from './Stats';
 import { Legend } from './Legend';
 
 export default function GridPage() {
-    const algoKey = useSettingsStore((s) => s.algoKey);
-    const speed = useSettingsStore((s) => s.speed);
-
     const gridRef = useRef<CanvasGridHandle>(null);
     const boxRef = useRef<HTMLDivElement>(null);
     const algoController = useAlgoController(gridRef, algorithms, {
-        initialAlgo: algoKey,
-        initialSpeed: speedToEPS[speed],
         animatePath: true,
     });
     const mazeGenerator = useMazeGenerator(mazes);

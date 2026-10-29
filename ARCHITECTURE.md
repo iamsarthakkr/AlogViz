@@ -18,7 +18,7 @@ main.tsx → App.tsx
        │                              ├─ <canvas> base   (useCanvasLayer)
        │                              └─ <canvas> overlay (useCanvasLayer)
        ├─ [stats]    ui/Stats <aside>    (placeholder)
-       ├─ [legend]   ui/Legend <aside>   (placeholder)
+       ├─ [legend]   ui/Legend <aside>   (swatches drawn by the grid's painters)
        └─ [controls] PlaybackControls (algo): Visualize, Pause/Step, Clear path, Dropdown (speed)
 ```
 
@@ -130,10 +130,11 @@ pointer input (see §4).
 
 ### `useSettingsStore` (`features/store/useSettingsStore.ts`) — UI/session state
 
-`algoKey`, `speed` (`'slow'|'medium'|'fast'`) and `mazeGeneratorKey`. This store is
-mostly cosmetic bookkeeping for dropdown labels; the actual runner speed lives in
-`useAlgoController`'s own `speed` state (converted from the preset via
-`utils/settings.ts:speedToEPS`).
+The user's selections: `algoKey` and `speed` (`'slow'|'medium'|'fast'`). This is the **only**
+copy: the dropdowns write here and nothing else, and `useAlgoController` reads from here (the
+speed preset live, converted via `utils/settings.ts:speedToEPS`; the algorithm with
+`getState()` when a run starts, see §7). Keeping one copy means the two can't drift apart. The
+maze dropdown is an action menu (picking a maze generates it now), so no maze key is stored.
 
 ### State that intentionally lives outside Zustand
 
@@ -141,9 +142,9 @@ High-frequency/imperative state is kept in `useRef`/local `useState` inside hook
 in a store, because it changes many times per second during playback and/or must survive
 across renders without forcing re-renders:
 
-- `useAlgoController`: `runners` (a `Map<algoKey, {runner, buildVersion}>` — one cached
-  generator+runner per algorithm so switching algorithms doesn't lose progress),
-  `currentKeyRef`, `cancelPathAnimRef`, `sawPathEventRef`, `speedRef`.
+- `useAlgoController`: `runners` (a `Map<algoKey, {runner, buildVersion}>` holding the active
+  run; it never holds more than one, see §7), `currentAlgoRef` (the active run's key, for
+  synchronous reads in callbacks), `cancelPathAnimRef`, `sawPathEventRef`, `speedRef`.
 - `useMazeGenerator`: `runnerRef`, a cleanup closure ref that restores start/goal.
 - `CanvasGrid`: `dragMode` (paint / move-start / move-goal), `brushRef` (wall vs erase).
 
@@ -288,15 +289,30 @@ piece of code that both algorithms and mazes are played back through; neither `A
   algorithm's overlay is stale" resolve instantly rather than by dropping frames.
 - `setSpeed(eps)`: updates the closure variable read by the next `tick`; takes effect
   immediately, no restart needed.
-- `getStatus()` mirrors `AlgoStatus` (`initial|running|paused|done`).
+- `getStatus()` returns its `AlgoStatus` (`initial|running|paused|done`).
+- `onStatusChange(status)` (option): called on every status **change**, including the run
+  finishing on its own inside a frame, but not for the initial status. Every transition goes
+  through one internal `setStatus`, so no code path can forget to report. The runner is the
+  single source of truth for status; callers never set one of their own.
 
 ## 7. `useAlgoController` — orchestrates algorithm playback
 
 This is the biggest piece of glue. Responsibilities:
 
-- **Runner cache**: `runners: Map<algoKey, {runner, buildVersion}>`. Switching the selected
-  algorithm (`setAlgorithm`) does _not_ discard other algorithms' progress — each key keeps
-  its own generator+runner until the grid changes underneath it.
+- **Selected vs active**: the _selected_ algorithm and speed live in `useSettingsStore` (§2); the
+  controller owns only the _active_ run, the one on screen (`currentAlgoRef` + `runAlgo` state).
+  Changing the selection doesn't touch the active run. `getOrCreateCurrent()` decides which
+  runner a control acts on: the active one while it is running (even if another algorithm was
+  selected meanwhile) or paused on the selected algorithm; otherwise a fresh run of the selected
+  algorithm. The selection is read with `getState()` rather than subscribed to, so it takes
+  effect when a control is used, not when the dropdown changes. `pause()` acts on the active
+  runner directly and never creates one.
+- **Runner bookkeeping**: `runners: Map<algoKey, {runner, buildVersion}>`. Starting a run cleans
+  up the previous one (`cleanupPreviousRun`: pause, cancel the path animation, clear the
+  overlay, reset stats, drop it from the map), so the map holds at most the active run. (A
+  single `activeRef` would say this more directly; planned for the refactor.)
+- **Speed**: subscribes to the store's preset and applies it to the active runner in an effect,
+  so a change takes effect mid-run; `speedRef` gives new runners the current speed.
 - **Grid-version invalidation**: `getOrCreateCurrent()` compares the cached runner's
   `buildVersion` against the live `gridVersion` (from `useGridStore`); a mismatch triggers a
   fresh `createRunnerFor`. A separate `useEffect` watches `gridVersion` directly: if the
@@ -304,22 +320,28 @@ This is the biggest piece of glue. Responsibilities:
   the old runner had already finished (`AlgoStatus.done`), the rebuild is played back
   **instantly** (`instant=true` → `drawPathInstant` + `r.skipToEnd()`) so editing the grid
   after a completed run doesn't require re-clicking Visualize to see the corrected path.
+  The rebuild uses the **active** algorithm, not the selected one, since the active run is what
+  is on screen.
   If the old runner was **running** (e.g. the grid was resized mid-run), the run is abandoned:
-  the rebuild leaves status `'ready'` and the controller releases `gridLock`, which `play()`
+  the rebuild leaves status `initial` (ready) and the controller releases `gridLock`, which `play()`
   took. It releases the lock only in that case, because `gridLock` is shared with the maze
   generator, and a resize mid-maze must not let the user paint over a half-carved maze. The
-  runner's status is read _before_ `pause()`, since pausing a running runner changes it.
+  runner's status is read _before_ the rebuild, since pausing a running runner changes it.
 - **Event → paint wiring** (`getEventHandler`): grabs the overlay ctx once per snapshot, and
   returns a closure that calls `paintAlgoEvent` for every event, tracks `visitedApprox`
   (incremented on `visit`), and on the terminal `path` event: sets `pathLen`, unlocks the
   grid (`setGridLock(false)`), and — unless `instant` — cancels any prior path animation and
   starts a new one via `animateFinalPath`, whose per-frame callback keeps the start/goal
   markers redrawn on top (since the overlay animation paints over them cell-by-cell).
-- **Status state machine**: `'idle' | 'ready' | 'running' | 'paused' | 'done'`, exposed to the
-  toolbar. `play()` locks the grid; `pause()`/finishing unlocks it.
-- **`clear()`**: pauses the current runner, rebuilds it fresh from the current snapshot
-  (resets `visitedApprox`/`pathLen`), and clears the overlay — used both by the toolbar's
-  "Clear path" button and internally before starting a maze generation.
+- **Status**: `AlgoStatus | undefined` (`undefined` = no run yet), set **only** from the
+  runner's `onStatusChange`; controls never set it. A new runner reports nothing at creation,
+  so `createRunnerFor` writes its starting status (`initial`) itself, _after_
+  `cleanupPreviousRun`: pausing the old runner reports `paused`, and the later write wins. This
+  is safe because a paused runner never reports again (its frame loop is cancelled). `play()`
+  locks the grid; `pause()`/finishing unlocks it.
+- **`clear()`**: discards the active run and builds a fresh one for the _selected_ algorithm
+  (status `initial`, stats reset, overlay cleared), so Visualize afterwards starts over rather
+  than resuming. Used by the toolbar's "Clear path" button and before starting a maze.
 - Cleanup on unmount pauses every cached runner and cancels any in-flight path animation.
 
 ## 8. `useMazeGenerator` — orchestrates maze playback
@@ -352,8 +374,11 @@ tracked outside the canvas bounds still deliver move events.
 - `hitCell(e)`: converts client coords to `{r,c}` via the wrapper's bounding rect and
   `cellSize` (no rounding/clamping to grid bounds — out-of-range is filtered by `paintAt`).
 - `onPointerDown`: no-ops if `gridLock`. If the hit cell is the start or goal marker, enters
-  `MoveStart`/`MoveGoal` drag mode. Otherwise enters `Paint` mode, choosing the brush
-  (`Erase` if right mouse button or Alt is held, else `Wall`) and paints immediately.
+  `MoveStart`/`MoveGoal` drag mode. Otherwise enters `Paint` mode, choosing the brush once
+  for the whole drag: `Erase` if the drag starts on a wall (so touch, with no right button or
+  Alt, can erase), or with the right mouse button or Alt held; else `Wall`. Then paints
+  immediately. The start cell is bounds-checked first: cells are a flat array, so an
+  out-of-range column would read the next row's cell.
 - `onPointerMove`: continues painting or dragging the active marker per `dragMode`, calling
   `api.refresh()` after every move to bump `gridVersion` (this is what invalidates cached
   algorithm runners live, mid-drag).
@@ -368,22 +393,24 @@ tracked outside the canvas bounds still deliver move events.
 ## 10. End-to-end flow: clicking "Visualize"
 
 1. `PlaybackControls`'s Visualize button calls `algo.play()` on the controller `GridPage` owns.
-2. `play()` → `getOrCreateCurrent()`: if no cached runner for `algoKey`, or the grid changed
-   since it was built, or it already finished, build a fresh one via `createRunnerFor`.
-3. `createRunnerFor`: pauses whatever runner was "current", snapshots the grid
-   (`getGridSnapshot`, returns `null` if start/goal invalid — controller bails out), clears
-   the overlay canvas, instantiates the algorithm generator (`algo(snap)`), wraps it in
-   `createRunner` with the current `speedRef` and an `onFinish` fallback, caches it keyed by
-   `algoKey` + the snapshot's `gridVersion`.
+2. `play()` → `getOrCreateCurrent()`: keeps the active runner if it can be resumed (see §7);
+   otherwise (no runner, the grid changed since it was built, it finished, or a different
+   algorithm is now selected) builds a fresh one for the selected algorithm via `createRunnerFor`.
+3. `createRunnerFor`: snapshots the grid (`getGridSnapshot`, returns `null` if start/goal
+   invalid — controller bails out), cleans up the previous run (pause, clear the overlay, reset
+   stats), instantiates the algorithm generator (`algo(snap)`), wraps it in `createRunner` with
+   the current `speedRef`, an `onFinish` fallback and `onStatusChange`, records it as the active
+   run with the snapshot's `gridVersion`, and sets status `initial`.
 4. `useGridStore.setGridLock(true)` — pointer painting is now inert.
 5. `runner.play()` starts the rAF tick loop; each tick pulls `eps/60` events and invokes the
    `onEvent` closure from `getEventHandler`, which paints `enqueue`/`visit` cells onto the
    **overlay** canvas immediately (no React render involved — this is why the visualization
    can run at high event rates without janking React).
-6. When the generator yields its terminal `path` event: grid unlocks, `pathLen`/status update
-   (triggers a React re-render of the toolbar only), and `animateFinalPath` takes over with
+6. When the generator yields its terminal `path` event: grid unlocks, `pathLen` updates, and
+   `animateFinalPath` takes over with
    its own independent rAF loop to trace the path cell-by-cell at `pathNps` (240/s default),
-   re-drawing the start/goal markers on top each frame.
+   re-drawing the start/goal markers on top each frame. When the generator then returns, the
+   runner reports `done` through `onStatusChange`.
 7. Meanwhile the **base** layer is untouched throughout — it only redraws in response to
    `useGridStore` changes (wall edits, marker moves), which is exactly what keeps grid
    editing and algorithm animation on separate, non-interfering render paths.

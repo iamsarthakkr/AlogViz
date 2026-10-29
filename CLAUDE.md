@@ -55,7 +55,7 @@ src/
   App.tsx              Root component (just renders ui/Grid)
   index.css            Tailwind + daisyUI setup, theme tokens, the .page grid layout (areas per breakpoint)
   ui/Grid.tsx           Top-level page: owns the algo controller + maze generator; places every piece in the .page grid layout
-  ui/Legend.tsx, Stats.tsx  Side panels (placeholders until the legend and stats are built)
+  ui/Legend.tsx, Stats.tsx  Side panels: legend (swatches drawn by the painters), stats (placeholder)
   components/           Generic, feature-agnostic UI (CanvasStage + its hook, Dropdown)
   features/
     store/               Zustand stores: useGridStore (grid data), useSettingsStore (UI state)

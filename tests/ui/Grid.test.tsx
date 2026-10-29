@@ -5,6 +5,7 @@ import Grid from '@/ui/Grid';
 import { useGridStore } from '@/features/store';
 import { lightPalette } from '@/features/painters';
 import { mazesLabels } from '@/features/mazes';
+import { algoLabels } from '@/features/algo';
 import { CellKind } from '@/types/grid';
 import { MockCtx } from '../helpers/canvas';
 import { installFakeRaf } from '../helpers/raf';
@@ -111,6 +112,46 @@ describe('Grid page', () => {
             expect(button('Step')).toBeInTheDocument();
             expect(button('Visualize')).toBeEnabled();
             expect(useGridStore.getState().gridLock).toBe(false);
+        });
+
+        // picking an algorithm mid-run used to retarget the controls, so Pause reached nothing and the
+        // old run kept animating behind a "paused" UI
+        it('picking another algorithm mid-run keeps the run pausable', async () => {
+            render(<Grid />);
+            const overlay = screen
+                .getByRole('main')
+                .querySelectorAll('canvas')[1]
+                .getContext('2d') as unknown as MockCtx;
+            const user = userEvent.setup();
+
+            await user.click(button('Visualize'));
+            act(() => void raf.frame());
+            await user.click(within(button(algoLabels[0]).parentElement!).getByText(algoLabels[1]));
+            await user.click(button('Pause'));
+            expect(button('Step')).toBeInTheDocument();
+            expect(useGridStore.getState().gridLock).toBe(false);
+
+            const fills = overlay.fills.length;
+            act(() => void raf.flush());
+            expect(overlay.fills).toHaveLength(fills);
+        });
+
+        it('picking another algorithm mid-run lets the run finish with the path it was finding', async () => {
+            render(<Grid />);
+            const overlay = screen
+                .getByRole('main')
+                .querySelectorAll('canvas')[1]
+                .getContext('2d') as unknown as MockCtx;
+            const user = userEvent.setup();
+
+            await user.click(button('Visualize'));
+            act(() => void raf.frame());
+            await user.click(within(button(algoLabels[0]).parentElement!).getByText(algoLabels[1]));
+            act(() => void raf.flush());
+
+            expect(button('Visualize')).toBeEnabled();
+            expect(useGridStore.getState().gridLock).toBe(false);
+            expect(pathOnScreen(overlay)).toHaveLength(expectedPathLength());
         });
 
         it('generates a maze into the grid', async () => {

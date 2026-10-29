@@ -9,14 +9,12 @@ describe('useSettingsStore', () => {
         expect(api()).toMatchObject({
             algoKey: algoLabels[0],
             speed: 'medium',
-            mazeGeneratorKey: '',
         });
     });
 
-    it('stores the selected algorithm, maze and speed', () => {
-        api().setAlgoKey('Depth-first search');
-        api().setMazeGeneratorKey("Prim's");
+    it('stores the selected algorithm and speed', () => {
+        api().setAlgoKey(algoLabels[1]);
         api().setSpeed('fast');
-        expect(api()).toMatchObject({ algoKey: 'Depth-first search', mazeGeneratorKey: "Prim's", speed: 'fast' });
+        expect(api()).toMatchObject({ algoKey: algoLabels[1], speed: 'fast' });
     });
 });

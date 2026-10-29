@@ -144,4 +144,65 @@ describe('createRunner', () => {
         raf.frame();
         expect(onEvent).toHaveBeenCalledTimes(12);
     });
+
+    // The controller's status comes only from these reports, so every transition must be reported,
+    // including the run finishing on its own inside a frame
+    describe('onStatusChange', () => {
+        const setup = (n: number) => {
+            const onStatusChange = vi.fn();
+            const runner = createRunner(count(n), vi.fn(), { onStatusChange });
+            const reported = () => onStatusChange.mock.calls.map(([s]) => s);
+            return { runner, reported };
+        };
+
+        it('is not called for the initial status', () => {
+            const { reported } = setup(3);
+            expect(reported()).toEqual([]);
+        });
+
+        it('reports play, pause, and finishing on its own', () => {
+            const { runner, reported } = setup(3);
+            runner.play();
+            runner.pause();
+            runner.play();
+            raf.flush();
+            expect(reported()).toEqual([AlgoStatus.running, AlgoStatus.paused, AlgoStatus.running, AlgoStatus.done]);
+        });
+
+        it('reports each change once: repeated steps stay one "paused"', () => {
+            const { runner, reported } = setup(2);
+            runner.step();
+            runner.step();
+            runner.step(); // generator exhausted
+            expect(reported()).toEqual([AlgoStatus.paused, AlgoStatus.done]);
+        });
+
+        it('reports done on skipToEnd, including from a running run', () => {
+            const { runner, reported } = setup(5);
+            runner.play();
+            runner.skipToEnd();
+            expect(reported()).toEqual([AlgoStatus.running, AlgoStatus.done]);
+        });
+
+        it('stays silent for no-op controls', () => {
+            const { runner, reported } = setup(3);
+            runner.pause(); // not running
+            runner.play();
+            runner.play(); // already running
+            expect(reported()).toEqual([AlgoStatus.running]);
+        });
+
+        // getStatus and the reports must always agree
+        it('reports match getStatus after every transition', () => {
+            const onStatusChange = vi.fn();
+            const runner = createRunner(count(3), vi.fn(), {
+                onStatusChange: (s: AlgoStatus) => onStatusChange(s, runner.getStatus()),
+            });
+            runner.play();
+            runner.pause();
+            runner.step();
+            runner.skipToEnd();
+            for (const [reported, actual] of onStatusChange.mock.calls) expect(reported).toBe(actual);
+        });
+    });
 });

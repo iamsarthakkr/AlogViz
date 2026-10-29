@@ -2,13 +2,15 @@
 //
 // PlaybackControls: Visualize, Pause/Step, Clear path and the speed preset. Receives the algorithm
 // controller owned by ui/Grid.tsx. Pure UI: button state comes from the controller's status, and
-// every click calls its public API (play/pause/step/clear/setSpeed).
+// every click calls its public API (play/pause/step/clear). The speed preset is written to
+// useSettingsStore only; the controller applies it from there.
 
 import { Dropdown } from '@/components/Dropdown';
 import { AlgoController } from '@/features/animations';
-import { availableSpeeds, speedToEPS } from '@/utils/settings';
+import { availableSpeeds } from '@/utils/settings';
 import { useSettingsStore } from '@/features/store';
 import { SpeedPreset } from '@/types/settings';
+import { AlgoStatus } from '@/types/algo';
 
 type Props = {
     algo: AlgoController;
@@ -24,7 +26,6 @@ export const PlaybackControls = ({ algo }: Props) => {
     const onSpeedChange = (preset: string) => {
         const api = useSettingsStore.getState();
         api.setSpeed(preset as SpeedPreset);
-        algo.setSpeed(speedToEPS[preset as SpeedPreset]);
     };
 
     return (
@@ -33,11 +34,11 @@ export const PlaybackControls = ({ algo }: Props) => {
                 className={`${btn} flex-[1.4] xl:flex-none xl:w-30 bg-indigo-600 disabled:bg-indigo-900 disabled:cursor-not-allowed hover:brightness-95`}
                 onClick={algo.play}
                 title="Visualize"
-                disabled={algo.status === 'running'}
+                disabled={algo.status === AlgoStatus.running}
             >
                 Visualize
             </button>
-            {algo.status === 'running' ? (
+            {algo.status === AlgoStatus.running ? (
                 <button className={`${secondary} flex-1 xl:flex-none xl:w-20`} onClick={algo.pause} title="Pause">
                     Pause
                 </button>
@@ -53,7 +54,7 @@ export const PlaybackControls = ({ algo }: Props) => {
                 onClick={algo.clear}
                 title="Clear path"
                 aria-label="Clear path"
-                disabled={algo.status === 'running'}
+                disabled={algo.status === AlgoStatus.running}
             >
                 Clear<span className="hidden xl:inline">&nbsp;path</span>
             </button>

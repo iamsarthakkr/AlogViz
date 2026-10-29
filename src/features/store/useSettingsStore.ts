@@ -1,8 +1,8 @@
 // Authored by - Sarthak Kumar
 //
 // useSettingsStore: UI/session state, separate from grid data.
-// - Selected algorithm/maze keys, speed preset
-// - Mostly cosmetic bookkeeping for dropdown labels; runner speed lives in useAlgoController
+// - The user's selections: algorithm key and speed preset. This is the only copy: the dropdowns
+//   write here, and useAlgoController reads from here (the speed live, the algorithm when a run starts)
 
 import { create } from 'zustand';
 import { SettingsState } from '@/types/settings';
@@ -13,11 +13,7 @@ export const useSettingsStore = create<SettingsState>((set) => {
         algoKey: algoLabels[0], // default to BFS
         speed: 'medium',
 
-        mazeGeneratorKey: '',
-
         setAlgoKey: (algoKey) => set({ algoKey }),
         setSpeed: (speed) => set({ speed }),
-
-        setMazeGeneratorKey: (mazeGeneratorKey) => set({ mazeGeneratorKey }),
     };
 });

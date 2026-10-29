@@ -5,14 +5,15 @@ What the app does today, ordered core-first. For _how_ each is implemented in de
 
 ## 1. Interactive wall-painting grid
 
-The core surface: a canvas grid (`features/CanvasGrid`) of empty/wall cells. Click-drag with
-the left mouse button (or plain touch/pen) paints walls; right-click-drag (or Alt+drag)
-erases them. A single continuous drag paints every cell it crosses without re-triggering per
-cell if the cell is already the target kind.
+The core surface: a canvas grid (`features/CanvasGrid`) of empty/wall cells. Dragging (mouse,
+touch or pen) paints walls; a drag that **starts on a wall** erases instead, which is how touch
+users erase. Right-click-drag or Alt+drag also erases. The brush is chosen once per drag, so a
+single drag either draws or erases every cell it crosses, never a mix.
 
 - Implementation: `CanvasGrid.tsx`'s pointer handlers (`onPointerDown/Move/Up`) compute the
-  hit cell from client coordinates, choose a `Brush` (`Wall`/`Erase`) from the mouse
-  button/modifier key, and write into `useGridStore` via `setCell` + a batched `refresh()`.
+  hit cell from client coordinates, choose a `Brush` (`Wall`/`Erase`) from the starting cell
+  and the mouse button/modifier key, and write into `useGridStore` via `setCell` + a batched
+  `refresh()`.
 - Interacts with: the base canvas layer redraws via `drawBaseScene` any time grid state
   changes; a running algorithm locks the grid (`gridLock`) so painting is disabled mid-run.
 
@@ -59,13 +60,14 @@ enables every control below without algorithm-specific code:
   the generator instantly and paints the final path with no animation.
 - **Clear path**: discards the current run's progress, rebuilds a fresh (not-yet-started)
   generator for the selected algorithm from the live grid, and clears the overlay canvas.
+  Visualize afterwards starts over; a paused run is not resumed.
 - **Speed**: `slow` / `medium` / `fast` presets (`utils/settings.ts:speedToEPS` → 80 / 220 /
   600 simulated events per second), changeable live, mid-run, without restarting.
 
-Switching the selected algorithm mid-session preserves each algorithm's own progress
-independently (each has its own cached generator+runner) — flipping back to a previously-run
-algorithm resumes/redisplays where it left off rather than restarting, _unless_ the grid
-changed in the meantime, in which case it's rebuilt from the new grid on next display.
+Picking a different algorithm only changes the **selection** (stored in `useSettingsStore`); the
+run on screen is left alone. A run in progress keeps going to its own path, and Pause still
+pauses it. The new algorithm is used the next time a run starts: Visualize or Step on a paused
+or finished run discards it and starts the newly selected algorithm.
 
 Editing the grid (walls/markers) while a **finished** visualization is showing automatically
 re-solves and re-draws the path instantly (no animation replay, no need to press Visualize
@@ -107,10 +109,14 @@ While an algorithm is selected/running, `useAlgoController` tracks and exposes:
 - `visitedApprox` — count of cells visited so far (increments on every `visit` event).
 - `pathLen` — length of the final path once found (`0` if the generator finishes without ever
   yielding a `path` with nodes, i.e. no path exists).
-- `status` — `idle | ready | running | paused | done`.
+- `status` — the runner's `AlgoStatus` (`initial` = ready, `running`, `paused`, `done`), or
+  `undefined` before the first run. It comes only from the runner (`onStatusChange`).
+- `runAlgo` — the algorithm of the run these numbers belong to (the active run, which can
+  differ from the dropdown's selection until the next run starts).
 
 These are currently computed and available on the controller but not all surfaced in the
-toolbar UI (`PlaybackControls.tsx` reads `status` for button state and `speed` for its label; `pathLen`
+toolbar UI (`PlaybackControls.tsx` reads `status` for button state, and the speed label from
+`useSettingsStore`; `runAlgo`, `pathLen`
 and `visitedApprox` are plumbed through but not yet rendered: the page has a `Stats` panel
 (`ui/Stats.tsx`) reserved for them, currently a placeholder).
 
@@ -141,4 +147,7 @@ chosen from the screen.
   size. If the box is too small even for 12px cells, the grid scrolls instead of shrinking.
 - **Touch:** dragging on the grid paints instead of scrolling the page (`touch-action: none`),
   controls are at least 44px tall, and the bottom bar clears the iPhone home bar.
-- **Legend and stats** have their places in the layout but are placeholders for now.
+- **Legend**: a swatch per item (Start, Goal, Wall, Frontier, Visited, Path) drawn with the
+  grid's own painters and palette, so it always matches the grid (visited is drawn over
+  frontier, as on the grid). Wrapping row on phones, a column on desktop. The **stats** panel
+  is still a placeholder.
