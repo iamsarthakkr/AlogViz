@@ -1,7 +1,7 @@
 // Contract every registered PathFinder must honour, so a new algorithm gets these checks
 // for free just by being added to the registry.
 import { describe, expect, it } from 'vitest';
-import { algoLabels, algorithms } from '@/features/algo';
+import { algoLabels, algoRegistry, algorithmMap } from '@/features/algo';
 import { CellKind } from '@/types/grid';
 import { emptyGrid, expectValidPath, parseGrid, runToPath } from '../../helpers/grid';
 import { seedRandom } from '../../helpers/random';
@@ -20,13 +20,37 @@ const BLOCKED = parseGrid([
 ]);
 
 describe('algorithm registry', () => {
-    it('lists every algorithm exactly once in the dropdown labels', () => {
-        expect([...algoLabels].sort()).toEqual(Object.keys(algorithms).sort());
+    // labels are the keys (dropdown, settings store, algorithmMap): a duplicate would shadow an algorithm
+    it('has unique labels', () => {
         expect(new Set(algoLabels).size).toBe(algoLabels.length);
+    });
+
+    it('can look every algorithm up by its label', () => {
+        for (const entry of algoRegistry) expect(algorithmMap[entry.label]).toBe(entry.run);
+        expect(Object.keys(algorithmMap)).toHaveLength(algoRegistry.length);
+    });
+
+    it('describes every algorithm (the info dialog shows it)', () => {
+        for (const entry of algoRegistry) expect(entry.description.trim()).not.toBe('');
+    });
+
+    // The UI and the weighted-grid contract rely on these flags (e.g. "BFS ignores weights"), so a
+    // wrong flag must fail here rather than show a wrong message. A new algorithm must be added here.
+    it('declares the expected metadata for each algorithm', () => {
+        const flags = Object.fromEntries(
+            algoRegistry.map((e) => [e.label, { weighted: e.weighted, shortest: e.shortest }]),
+        );
+        expect(flags).toEqual({
+            'Breadth-first search': { weighted: false, shortest: 'unweighted-only' },
+            'Depth-first search': { weighted: false, shortest: 'never' },
+            'Bidirectional BFS': { weighted: false, shortest: 'unweighted-only' },
+            "Dijkstra's": { weighted: true, shortest: 'always' },
+        });
     });
 });
 
-describe.each(Object.entries(algorithms))('%s', (_label, algo) => {
+describe.each(algoRegistry)('$label', (entry) => {
+    const algo = entry.run;
     it('starts by enqueueing the start cell', () => {
         const { events } = runToPath(algo(OPEN));
         expect(events[0]).toEqual({ type: 'enqueue', at: OPEN.start });

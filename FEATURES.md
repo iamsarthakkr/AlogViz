@@ -34,8 +34,10 @@ be dropped on top of the other marker.
 
 ## 3. Pathfinding algorithms (Visualize / Step / Pause / Skip-to-end / Clear)
 
-Four algorithms, selectable from the "Algorithm" dropdown in the toolbar
-(`features/algo/index.ts`):
+Four algorithms, selectable from the "Algorithm" dropdown in the toolbar. They are listed once,
+with their metadata (whether they read weights, when their path is guaranteed shortest, a
+one-line description), in `features/algo/registry.ts`; the dropdown, the settings store's default,
+the controller's lookup and the info dialog are all derived from that list:
 
 | Algorithm            | File                  | Notes                                                                                                                           |
 | -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -174,7 +176,7 @@ jump to a slide, and the ← / → keys page through it; it always opens on the 
 - It's a native modal `<dialog>`: Esc, the X or a click outside closes it, focus stays inside
   while open, and the page behind is inert. It takes no layout space, so it doesn't disturb a
   run in progress.
-- The algorithm names come from the registry (`algoLabels`); each needs a one-line description
-  in `ui/InfoModal.tsx` (a test checks every registered algorithm has one).
+- The algorithms slide renders the registry (`algoRegistry`: each label and its `description`),
+  so a new algorithm shows up there automatically (a test checks every entry has a description).
 - Implementation: generic shell `components/Modal.tsx`, content `ui/InfoModal.tsx`, state
   `features/hooks/useInfoModal.ts`.

@@ -18,7 +18,7 @@ import { PlaybackControls, Toolbar } from '@/features/Toolbar';
 import { useResponsiveGrid } from '@/features/hooks/useResponsiveGrid';
 import { useAlgoController, useMazeGenerator } from '@/features/animations';
 import { mazes } from '@/features/mazes';
-import { algorithms } from '@/features/algo';
+import { algorithmMap } from '@/features/algo';
 import { Stats } from './Stats';
 import { Legend } from './Legend';
 import { InfoModal } from './InfoModal';
@@ -28,7 +28,7 @@ export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
     const boxRef = useRef<HTMLDivElement>(null);
     const { modalOpen, toggleModal, onModalClosed } = useInfoModal();
-    const algoController = useAlgoController(gridRef, algorithms, {
+    const algoController = useAlgoController(gridRef, algorithmMap, {
         animatePath: true,
     });
     const mazeGenerator = useMazeGenerator(mazes);

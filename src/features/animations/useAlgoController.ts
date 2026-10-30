@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Callback } from '@/types/common';
-import { AlgoStatus, type AlgoEvent, type PathFinder } from '@/types/algo';
+import { AlgoMap, AlgoStatus, type AlgoEvent } from '@/types/algo';
 import type { CanvasGridHandle } from '@/features/CanvasGrid';
 import { useGridStore, useSettingsStore } from '@/features/store';
 import { paintAlgoEvent, animateFinalPath, drawMarkers } from '@/features/painters';
@@ -39,8 +39,6 @@ export type AlgoController = {
     skipToEnd: Callback;
 };
 
-export type AlgoRegistry = Record<string, PathFinder>;
-
 type Options = {
     animatePath?: boolean; // default true (if false, path is drawn instantly)
     pathNps?: number; // nodes/sec for path trace if animating
@@ -50,7 +48,7 @@ type CachedRunner = { runner: RunnerApi<AlgoEvent>; buildVersion: number };
 
 export function useAlgoController(
     gridRef: React.RefObject<CanvasGridHandle | null>,
-    registry: AlgoRegistry,
+    registry: AlgoMap, // keyed by label, the same key as useSettingsStore.algoKey
     opts: Options = {},
 ): AlgoController {
     const speed = useSettingsStore((s) => speedToEPS[s.speed]);

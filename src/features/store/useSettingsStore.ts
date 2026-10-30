@@ -10,7 +10,7 @@ import { algoLabels } from '@/features/algo';
 
 export const useSettingsStore = create<SettingsState>((set) => {
     return {
-        algoKey: algoLabels[0], // default to BFS
+        algoKey: algoLabels[0],
         speed: 'medium',
 
         setAlgoKey: (algoKey) => set({ algoKey }),

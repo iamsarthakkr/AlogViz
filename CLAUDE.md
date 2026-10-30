@@ -109,14 +109,16 @@ makes play/pause/step/skip-to-end and speed control "free" — they're all just 
 controls, not algorithm-specific code. See ARCHITECTURE.md for the full flow.
 
 Adding a new algorithm or maze generator is meant to be "write one generator file, register
-it in an index.ts map". The contract suites in `tests/` check a new entry automatically; the
-remaining friction is the per-file `id`/`inb`/`isWall` helpers and the parallel labels array.
+it". The contract suites in `tests/` check a new entry automatically; the remaining friction is
+the per-file `id`/`inb`/`isWall` helpers and, for mazes, the parallel labels array.
 
 ## Conventions actually used in this codebase
 
-- Algorithms/mazes register themselves in a `Record<string, T>` plus a parallel `string[]`
-  labels array in the corresponding `features/<x>/index.ts` (e.g. `algorithms` +
-  `algoLabels` in `features/algo/index.ts`). Keep both in sync when adding one.
+- Algorithms register as **one entry** in `features/algo/registry.ts` (`algoRegistry`: label, `run`,
+  `weighted`, `shortest`, `description`); `algoLabels` and `algorithmMap` are derived from it, and
+  array order is the dropdown order. A new entry also needs its flags added to the metadata test
+  in `tests/features/algo/index.test.ts`. Mazes still use a `Record<string, T>` plus a parallel
+  `mazesLabels` array in `features/mazes/index.ts`; keep both in sync when adding one.
 - Grid coordinates are `{r, c}` (`Coord`), flattened to a 1D index via `r * cols + c`
   everywhere (grid store, algorithms, mazes, painters) — there is no 2D array anywhere.
 - Two canvases are stacked per grid: a **base** layer (cells/walls/markers, redrawn on grid

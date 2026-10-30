@@ -10,7 +10,7 @@ import { ChevronIcon } from '@/icons/ChevronIcon';
 type Props = {
     title: React.ReactNode;
     label?: string; // accessible name; needed when the title isn't plain text (e.g. a short form for phones)
-    options: string[];
+    options: readonly string[];
     onSelect: Callback1<string>;
     className?: string; // root: width, and daisyUI placement (d-dropdown-top/-end, responsive variants work)
     menuClassName?: string; // the gap between trigger and menu, on the side the menu opens (default mt-2)

@@ -27,7 +27,7 @@ main.tsx → App.tsx
 `[name]` is the CSS grid area each piece is placed in (see "Page layout" below).
 
 `ui/Grid.tsx` is the nearest common parent of everything that drives or shows a run, so it owns
-the **one** algorithm controller (`useAlgoController(gridRef, algorithms, …)`) and maze
+the **one** algorithm controller (`useAlgoController(gridRef, algorithmMap, …)`) and maze
 generator and passes them down as props (`algo`, `maze`). There must be exactly one instance:
 calling the hook in two components would create two independent controllers with separate
 runners. Plain props rather than Context or a store: the tree is one or two levels deep, and
