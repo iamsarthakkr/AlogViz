@@ -3,6 +3,8 @@
 // colors: centralized color palette for the grid canvas (base scene + overlay events).
 // NOTE: darkPalette is currently identical to lightPalette, and no theme-switch wires it up.
 
+import { WEIGHT_LEVELS } from '@/utils/constants';
+
 export type GridPalette = {
     // base scene
     cellEmpty: string;
@@ -18,6 +20,10 @@ export type GridPalette = {
     frontier: string;
     visited: string;
     pathCell: string;
+
+    // one tint per WEIGHT_LEVELS entry, same order; weightMark colours the level dots
+    weights: string[];
+    weightMark: string;
 };
 
 export const lightPalette: GridPalette = {
@@ -32,6 +38,9 @@ export const lightPalette: GridPalette = {
     frontier: 'rgba(139, 209, 221, 0.5)',
     visited: 'rgba(81, 213, 239, 0.7)',
     pathCell: '#efea51',
+
+    weights: ['#eadbb8', '#c9a46c', '#8f6b3e'],
+    weightMark: 'rgba(45, 30, 10, 0.6)',
 };
 
 export const darkPalette: GridPalette = {
@@ -46,4 +55,15 @@ export const darkPalette: GridPalette = {
     frontier: 'rgba(139, 209, 221, 0.5)',
     visited: 'rgba(81, 213, 239, 0.7)',
     pathCell: '#efea51',
+
+    weights: ['#eadbb8', '#c9a46c', '#8f6b3e'],
+    weightMark: 'rgba(45, 30, 10, 0.6)',
+};
+
+// index into WEIGHT_LEVELS, or -1 for a cell at the default weight
+export const weightLevel = (w: number) => WEIGHT_LEVELS.indexOf(w);
+
+export const weightColor = (w: number, palette: GridPalette) => {
+    const level = weightLevel(w);
+    return level < 0 ? palette.cellEmpty : palette.weights[level];
 };

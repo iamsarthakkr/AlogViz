@@ -33,8 +33,8 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
     { style, className }: CanvasGridProps,
     ref,
 ) {
-    const [rows, cols, cellSize, cells, start, goal] = useGridStore(
-        useShallow((s) => [s.rows, s.cols, s.cellSize, s.cells, s.start, s.goal] as const),
+    const [rows, cols, cellSize, cells, weights, start, goal] = useGridStore(
+        useShallow((s) => [s.rows, s.cols, s.cellSize, s.cells, s.weights, s.start, s.goal] as const),
     );
 
     const stageRef = useRef<CanvasStageHandle>(null);
@@ -59,10 +59,21 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
                 const ctx = stageRef.current?.getBaseCtx();
                 const api = useGridStore.getState();
                 if (ctx)
-                    drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal, api.validStart(), api.validGoal());
+                    drawBaseScene({
+                        ctx,
+                        rows,
+                        cols,
+                        cellSize,
+                        cells,
+                        weights,
+                        start,
+                        goal,
+                        validStart: api.validStart(),
+                        validGoal: api.validGoal(),
+                    });
             },
         }),
-        [rows, cols, cellSize, cells, start, goal],
+        [rows, cols, cellSize, cells, weights, start, goal],
     );
 
     // animation frames schedule
@@ -71,9 +82,20 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
         if (!ctx) return;
         schedule(() => {
             const api = useGridStore.getState();
-            drawBaseScene(ctx, rows, cols, cellSize, cells, start, goal, api.validStart(), api.validGoal());
+            drawBaseScene({
+                ctx,
+                rows,
+                cols,
+                cellSize,
+                cells,
+                weights,
+                start,
+                goal,
+                validStart: api.validStart(),
+                validGoal: api.validGoal(),
+            });
         });
-    }, [rows, cols, cellSize, cells, start, goal, schedule]);
+    }, [rows, cols, cellSize, cells, weights, start, goal, schedule]);
 
     // hit testing
     const hitCell = useCallback(
@@ -96,7 +118,11 @@ export const CanvasGrid = forwardRef<CanvasGridHandle, CanvasGridProps>(function
 
         const want: CellKind = brushRef.current === Brush.Wall ? CellKind.wall : CellKind.empty;
         if (api.cells[k] === want) return;
-        api.setCell(r, c, want);
+        if (want === CellKind.wall) {
+            api.setWall(r, c);
+        } else {
+            api.clearWall(r, c);
+        }
         api.refresh();
     }, []);
 

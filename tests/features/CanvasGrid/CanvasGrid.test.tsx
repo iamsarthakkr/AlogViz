@@ -5,6 +5,7 @@ import { CanvasGrid, CanvasGridHandle } from '@/features/CanvasGrid';
 import { useGridStore } from '@/features/store';
 import { lightPalette } from '@/features/painters';
 import { CellKind } from '@/types/grid';
+import { WEIGHT_LEVELS } from '@/utils/constants';
 import { MockCtx } from '../../helpers/canvas';
 import { installFakeRaf } from '../../helpers/raf';
 
@@ -45,6 +46,19 @@ describe('CanvasGrid', () => {
         expect(base.fills[0].style).toBe(lightPalette.background);
     });
 
+    // weights is part of what CanvasGrid subscribes to; without it the terrain would only appear on
+    // the next unrelated redraw
+    it('redraws the base layer when a weight changes', () => {
+        const { ref } = setup();
+        const base = ref.current!.getBaseCtx() as MockCtx;
+        act(() => void raf.flush());
+        base.fills.length = 0;
+
+        act(() => api().setWeight(0, 0, WEIGHT_LEVELS[0]));
+        act(() => void raf.flush());
+        expect(base.fills.map((f) => f.style)).toContain(lightPalette.weights[0]);
+    });
+
     it('paints a wall on click and keeps painting while dragging', () => {
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(0, 0));
@@ -58,8 +72,8 @@ describe('CanvasGrid', () => {
     });
 
     it('erases with the right mouse button or alt', () => {
-        api().setCell(0, 0, CellKind.wall);
-        api().setCell(0, 1, CellKind.wall);
+        api().setWall(0, 0);
+        api().setWall(0, 1);
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, { ...at(0, 0), button: 2 });
         fireEvent.pointerUp(surface, at(0, 0));
@@ -71,7 +85,7 @@ describe('CanvasGrid', () => {
     // touch has no right button or alt, so the cell a drag starts on picks the brush
     describe('a drag that starts on a wall', () => {
         it('erases, for the whole drag', () => {
-            [0, 1, 2].forEach((c) => api().setCell(0, c, CellKind.wall));
+            [0, 1, 2].forEach((c) => api().setWall(0, c));
             const { surface, at } = setup();
             fireEvent.pointerDown(surface, at(0, 0));
             fireEvent.pointerMove(surface, at(0, 1));
@@ -83,7 +97,7 @@ describe('CanvasGrid', () => {
 
         // the brush is picked once per drag, so crossing empty cells doesn't flip it to drawing
         it('leaves empty cells it crosses empty', () => {
-            api().setCell(0, 0, CellKind.wall);
+            api().setWall(0, 0);
             const { surface, at } = setup();
             fireEvent.pointerDown(surface, at(0, 0));
             fireEvent.pointerMove(surface, at(0, 1));
@@ -93,7 +107,7 @@ describe('CanvasGrid', () => {
     });
 
     it('a drag that starts on an empty cell draws over walls it crosses', () => {
-        api().setCell(0, 1, CellKind.wall);
+        api().setWall(0, 1);
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(0, 0));
         fireEvent.pointerMove(surface, at(0, 1));
@@ -105,7 +119,7 @@ describe('CanvasGrid', () => {
     // cells are a flat array, so (r, cols) would read (r + 1, 0): a wall there must not pick the eraser
     it('a drag starting just past the right edge draws, even if the next row starts with a wall', () => {
         const { cols } = api();
-        api().setCell(1, 0, CellKind.wall);
+        api().setWall(1, 0);
         const { surface, at } = setup();
         fireEvent.pointerDown(surface, at(0, cols));
         fireEvent.pointerMove(surface, at(0, cols - 1));

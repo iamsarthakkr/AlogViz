@@ -11,7 +11,6 @@ import { createRunner, RunnerApi } from './runner';
 import { getGridSnapshot } from './utils';
 import { MazeGenerator, MazeGeneratorEvent } from '@/types/mazeGenerator';
 import { useGridStore } from '@/features/store';
-import { CellKind } from '@/types/grid';
 import { Callback } from '@/types/common';
 
 export type MazeGeneratorApi = {
@@ -79,10 +78,10 @@ export function useMazeGenerator(registry: MazeGeneratorRegistry, opts: Options 
                             gridApi.clearWalls();
                             break;
                         case 'carve':
-                            gridApi.setCell(event.at.r, event.at.c, CellKind.empty);
+                            gridApi.clearWall(event.at.r, event.at.c);
                             break;
                         case 'wall':
-                            gridApi.setCell(event.at.r, event.at.c, CellKind.wall);
+                            gridApi.setWall(event.at.r, event.at.c);
                             break;
                         case 'done':
                             if (clearnupRef.current) {

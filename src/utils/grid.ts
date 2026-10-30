@@ -4,14 +4,25 @@
 // by useGridStore.setStart/setGoal to snap a dragged marker off of a wall cell.
 
 import { CellKind, Coord, Grid } from '@/types/grid';
-import { CELL_SIZE, COLS, ROWS } from './constants';
+import { CELL_SIZE, COLS, DEFAULT_WEIGHT, ROWS } from './constants';
 
 // initialize grid
 export const initGrid = (rows = ROWS, cols = COLS, cellSize = CELL_SIZE): Grid => {
     const cells: CellKind[] = Array(rows * cols).fill(CellKind.empty);
+    const weights: number[] = Array(rows * cols).fill(DEFAULT_WEIGHT);
     const start = { r: Math.floor(rows / 2), c: Math.floor(cols / 6) };
     const goal = { r: Math.floor(rows / 2), c: Math.floor((cols * 5) / 6) };
-    return { gridVersion: 0, rows, cols, cellSize, cells, start, goal, gridLock: false };
+    return {
+        gridVersion: 0,
+        rows,
+        cols,
+        cellSize,
+        cells,
+        weights,
+        start,
+        goal,
+        gridLock: false,
+    };
 };
 
 // tiny bfs around a cell to find nearest empty cell

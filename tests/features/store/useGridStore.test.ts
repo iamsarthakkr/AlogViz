@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { useGridStore } from '@/features/store';
 import { CellKind } from '@/types/grid';
-import { CELL_SIZE, COL_PRESETS, COLS, MAX_CELL, MIN_CELL, MIN_ROWS, ROWS } from '@/utils/constants';
+import {
+    CELL_SIZE,
+    COL_PRESETS,
+    COLS,
+    DEFAULT_WEIGHT,
+    MAX_CELL,
+    MIN_CELL,
+    MIN_ROWS,
+    ROWS,
+    WEIGHT_LEVELS,
+} from '@/utils/constants';
 import { initGrid } from '@/utils/grid';
 
 const api = () => useGridStore.getState();
@@ -19,45 +29,174 @@ describe('useGridStore', () => {
         expect(api().inBounds(0, 0)).toBe(true);
         expect(api().inBounds(ROWS, 0)).toBe(false);
         expect(api().inBounds(0, -1)).toBe(false);
-        api().setCell(2, 3, CellKind.wall);
+        api().setWall(2, 3);
         expect(api().at(2, 3)).toBe(CellKind.wall);
     });
 
-    describe('setCell', () => {
-        it('sets a cell and replaces the cells array (so subscribers re-render)', () => {
+    describe('walls', () => {
+        it('setWall sets a wall and replaces the cells array (so subscribers re-render)', () => {
             const before = api().cells;
-            api().setCell(0, 0, CellKind.wall);
+            api().setWall(0, 0);
             expect(api().cells).not.toBe(before);
             expect(api().at(0, 0)).toBe(CellKind.wall);
         });
 
+        it('clearWall turns a wall back into an empty cell', () => {
+            api().setWall(0, 0);
+            api().clearWall(0, 0);
+            expect(api().at(0, 0)).toBe(CellKind.empty);
+        });
+
         it('ignores out-of-bounds cells', () => {
             const before = api().cells;
-            api().setCell(-1, 0, CellKind.wall);
-            api().setCell(0, COLS, CellKind.wall);
+            api().setWall(-1, 0);
+            api().setWall(0, COLS);
+            api().clearWall(ROWS, 0);
             expect(api().cells).toBe(before);
         });
 
-        it('never overwrites the start or goal cell', () => {
+        it('never puts a wall on the start or goal cell', () => {
             const { start, goal } = api();
-            api().setCell(start.r, start.c, CellKind.wall);
-            api().setCell(goal.r, goal.c, CellKind.wall);
+            api().setWall(start.r, start.c);
+            api().setWall(goal.r, goal.c);
             expect(api().at(start.r, start.c)).toBe(CellKind.empty);
             expect(api().at(goal.r, goal.c)).toBe(CellKind.empty);
         });
 
-        it('skips the update when the cell already has that kind', () => {
-            const before = api().cells;
-            api().setCell(0, 0, CellKind.empty);
-            expect(api().cells).toBe(before);
+        it('skips the update when there is nothing to change', () => {
+            api().setWall(0, 0);
+            const walled = api().cells;
+            api().setWall(0, 0);
+            expect(api().cells).toBe(walled);
+
+            api().clearWall(1, 1); // already empty
+            expect(api().cells).toBe(walled);
+        });
+
+        it('fillWalls / clearWalls change every cell', () => {
+            api().fillWalls();
+            expect(api().cells.every((k) => k === CellKind.wall)).toBe(true);
+            api().clearWalls();
+            expect(api().cells.every((k) => k === CellKind.empty)).toBe(true);
         });
     });
 
-    it('fillWalls / clearWalls change every cell', () => {
-        api().fillWalls();
-        expect(api().cells.every((k) => k === CellKind.wall)).toBe(true);
-        api().clearWalls();
-        expect(api().cells.every((k) => k === CellKind.empty)).toBe(true);
+    // The rule: only plain cells carry weight. A wall never has one; the markers' cells can hold one
+    // (a marker dropped on terrain), but it never counts (see getGridSnapshot).
+    describe('weights', () => {
+        const [LIGHT, MEDIUM, HEAVY] = WEIGHT_LEVELS;
+        const weightAt = (r: number, c: number) => api().weights[api().idx(r, c)];
+
+        it('a new grid has every cell at the default weight', () => {
+            expect(api().weights).toHaveLength(ROWS * COLS);
+            expect(api().weights.every((w) => w === DEFAULT_WEIGHT)).toBe(true);
+        });
+
+        it('setWeight sets a weight and replaces the weights array', () => {
+            const before = api().weights;
+            api().setWeight(0, 0, MEDIUM);
+            expect(api().weights).not.toBe(before);
+            expect(weightAt(0, 0)).toBe(MEDIUM);
+        });
+
+        it('setWeight skips out-of-bounds cells, walls and unchanged values', () => {
+            api().setWall(1, 1);
+            api().setWeight(0, 0, LIGHT);
+            const before = api().weights;
+
+            api().setWeight(-1, 0, LIGHT);
+            api().setWeight(0, COLS, LIGHT);
+            api().setWeight(1, 1, LIGHT); // wall
+            api().setWeight(0, 0, LIGHT); // unchanged
+            expect(api().weights).toBe(before);
+        });
+
+        // a weight below the default would make a step cheaper than an open cell, which breaks the
+        // assumption A* relies on (every step costs at least DEFAULT_WEIGHT)
+        it('setWeight refuses weights below the default', () => {
+            const before = api().weights;
+            api().setWeight(0, 0, DEFAULT_WEIGHT / 2);
+            api().setWeight(0, 0, 0);
+            expect(api().weights).toBe(before);
+        });
+
+        it('setWeight never paints the start or goal cell', () => {
+            const { start, goal } = api();
+            api().setWeight(start.r, start.c, HEAVY);
+            api().setWeight(goal.r, goal.c, HEAVY);
+            expect(weightAt(start.r, start.c)).toBe(DEFAULT_WEIGHT);
+            expect(weightAt(goal.r, goal.c)).toBe(DEFAULT_WEIGHT);
+        });
+
+        it('clearWeight resets one cell, and skips cells already at the default', () => {
+            api().setWeight(0, 0, HEAVY);
+            api().clearWeight(0, 0);
+            expect(weightAt(0, 0)).toBe(DEFAULT_WEIGHT);
+
+            const before = api().weights;
+            api().clearWeight(0, 0);
+            expect(api().weights).toBe(before);
+        });
+
+        it('clearWeights resets every cell, and skips the update when nothing was weighted', () => {
+            api().setWeight(0, 0, LIGHT);
+            api().setWeight(1, 1, HEAVY);
+            api().clearWeights();
+            expect(api().weights.every((w) => w === DEFAULT_WEIGHT)).toBe(true);
+
+            const before = api().weights;
+            api().clearWeights();
+            expect(api().weights).toBe(before);
+        });
+
+        it('a wall drops the weight of its cell', () => {
+            api().setWeight(0, 0, HEAVY);
+            api().setWall(0, 0);
+            expect(weightAt(0, 0)).toBe(DEFAULT_WEIGHT);
+            api().clearWall(0, 0);
+            expect(weightAt(0, 0)).toBe(DEFAULT_WEIGHT); // the terrain doesn't come back
+        });
+
+        it('fillWalls drops every weight (every cell is a wall)', () => {
+            api().setWeight(0, 0, HEAVY);
+            api().fillWalls();
+            expect(api().weights.every((w) => w === DEFAULT_WEIGHT)).toBe(true);
+        });
+
+        // "Clear walls" must not wipe terrain the user painted
+        it('clearWalls keeps the weights', () => {
+            api().setWeight(0, 0, MEDIUM);
+            api().setWall(1, 1);
+            api().clearWalls();
+            expect(weightAt(0, 0)).toBe(MEDIUM);
+        });
+
+        // dragging a marker across terrain must not leave holes in it
+        it('a marker dropped on a weighted cell keeps the weight stored, so the terrain is back once it leaves', () => {
+            const { start } = api();
+            const cell = { r: start.r, c: start.c + 2 };
+            api().setWeight(cell.r, cell.c, HEAVY);
+            api().setStart(cell.r, cell.c);
+            expect(api().start).toEqual(cell);
+            expect(weightAt(cell.r, cell.c)).toBe(HEAVY);
+
+            api().setStart(start.r, start.c);
+            expect(weightAt(cell.r, cell.c)).toBe(HEAVY);
+        });
+
+        it('reset gives a fresh grid default weights', () => {
+            api().setWeight(0, 0, HEAVY);
+            api().reset(MIN_ROWS, COL_PRESETS[0], MIN_CELL);
+            expect(api().weights).toHaveLength(MIN_ROWS * COL_PRESETS[0]);
+            expect(api().weights.every((w) => w === DEFAULT_WEIGHT)).toBe(true);
+        });
+
+        it('resize keeps the weights', () => {
+            api().setWeight(0, 0, MEDIUM);
+            const { weights } = api();
+            api().resize(CELL_SIZE + 1);
+            expect(api().weights).toBe(weights);
+        });
     });
 
     describe('setStart / setGoal', () => {
@@ -76,7 +215,7 @@ describe('useGridStore', () => {
         });
 
         it('snaps off a wall to the nearest empty cell', () => {
-            api().setCell(4, 4, CellKind.wall);
+            api().setWall(4, 4);
             api().setStart(4, 4);
             const { start } = api();
             expect(Math.abs(start.r - 4) + Math.abs(start.c - 4)).toBe(1);
@@ -103,7 +242,7 @@ describe('useGridStore', () => {
         const resetTo = () => api().reset(layout.rows, layout.cols, layout.cellSize);
 
         it('builds an empty grid of the given size', () => {
-            api().setCell(0, 0, CellKind.wall);
+            api().setWall(0, 0);
             resetTo();
             expect(api()).toMatchObject(layout);
             expect(api().cells).toHaveLength(layout.rows * layout.cols);
@@ -144,7 +283,7 @@ describe('useGridStore', () => {
         const otherSize = CELL_SIZE + 1; // CELL_SIZE is the default, so this always changes it
 
         it('changes only the cell size: dimensions, walls and markers are kept', () => {
-            api().setCell(0, 0, CellKind.wall);
+            api().setWall(0, 0);
             const { rows, cols, cells, start, goal } = api();
             api().resize(otherSize);
             expect(api()).toMatchObject({ cellSize: otherSize, rows, cols, cells, start, goal });

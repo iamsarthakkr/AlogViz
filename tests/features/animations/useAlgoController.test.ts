@@ -7,7 +7,6 @@ import { bfs } from '@/features/algo/bfs';
 import { dfs } from '@/features/algo/dfs';
 import { lightPalette } from '@/features/painters';
 import { AlgoStatus } from '@/types/algo';
-import { CellKind } from '@/types/grid';
 import { createMockCtx, MockCtx } from '../../helpers/canvas';
 import { installFakeRaf } from '../../helpers/raf';
 
@@ -149,7 +148,7 @@ describe('useAlgoController', () => {
 
     it('reports a path length of 0 when the goal is unreachable', () => {
         const api = useGridStore.getState();
-        for (let r = 0; r < 5; r++) api.setCell(r, 2, CellKind.wall);
+        for (let r = 0; r < 5; r++) api.setWall(r, 2);
         const { result } = render();
         act(() => result.current.skipToEnd());
         expect(result.current.status).toBe(AlgoStatus.done);
@@ -304,7 +303,7 @@ describe('useAlgoController', () => {
             select('DFS');
 
             act(() => {
-                useGridStore.getState().setCell(2, 2, CellKind.wall);
+                useGridStore.getState().setWall(2, 2);
                 useGridStore.getState().refresh();
             });
             expect(result.current.runAlgo).toBe('BFS');
@@ -353,7 +352,7 @@ describe('useAlgoController', () => {
         act(() => result.current.skipToEnd());
 
         act(() => {
-            useGridStore.getState().setCell(2, 2, CellKind.wall);
+            useGridStore.getState().setWall(2, 2);
             useGridStore.getState().refresh();
         });
         expect(result.current.status).toBe(AlgoStatus.done);

@@ -1,12 +1,17 @@
 // Authored by - Sarthak Kumar
 //
-// basePainter: pure draw functions for the base canvas layer (cells, walls, grid lines, markers).
+// basePainter: pure draw functions for the base canvas layer (cells, walls, weights, grid lines, markers).
 // - drawBaseScene is the main entry point, called on every grid state change
+// - Weighted cells get their level's tint plus 1-3 dots, so the level doesn't rely on colour alone
+//   (colour-blind users); dots are skipped below WEIGHT_DOTS_MIN_CELL, where they'd be noise
+// - Marker cells are drawn plain even with a weight stored under them: it never counts, so it isn't shown
 // - drawGridLines skips segments between two adjacent walls so wall blocks render as solid shapes
 // - drawStartMarker/drawGoalMarker draw the arrow/ringed-dot glyphs
 
 import { CellKind, Coord } from '@/types/grid';
-import { lightPalette as palette } from './colors';
+import { lightPalette as palette, weightColor, weightLevel } from './colors';
+
+const WEIGHT_DOTS_MIN_CELL = 16;
 
 function center(p: Coord, s: number) {
     return [p.c * s + s / 2, p.r * s + s / 2] as const;
@@ -102,18 +107,36 @@ function drawGridLines(
     }
 }
 
+type Scene = {
+    ctx: CanvasRenderingContext2D;
+    rows: number;
+    cols: number;
+    cellSize: number;
+    cells: CellKind[];
+    weights: number[];
+    start: Coord;
+    goal: Coord;
+    validStart: boolean;
+    validGoal: boolean;
+};
+
+function drawWeightDots(ctx: CanvasRenderingContext2D, r: number, c: number, cellSize: number, count: number) {
+    const radius = Math.max(1.5, cellSize * 0.07);
+    const gap = radius * 3;
+    const [cx, cy] = center({ r, c }, cellSize);
+    const firstX = cx - ((count - 1) * gap) / 2;
+
+    ctx.fillStyle = palette.weightMark;
+    for (let i = 0; i < count; i++) {
+        ctx.beginPath();
+        ctx.arc(firstX + i * gap, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // draws base grid with grid lines, cells and markers
-export function drawBaseScene(
-    ctx: CanvasRenderingContext2D,
-    rows: number,
-    cols: number,
-    cellSize: number,
-    cells: CellKind[],
-    start: Coord,
-    goal: Coord,
-    validStart: boolean,
-    validGoal: boolean,
-) {
+export function drawBaseScene(scene: Scene) {
+    const { ctx, rows, cols, cellSize, cells, weights, start, goal, validStart, validGoal } = scene;
     // background
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, cols * cellSize, rows * cellSize);
@@ -121,8 +144,13 @@ export function drawBaseScene(
     // cells
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            const kind = cells[r * cols + c];
-            ctx.fillStyle = kind === CellKind.wall ? palette.cellWall : palette.cellEmpty;
+            const isEndpoint = (r === start.r && c === start.c) || (r === goal.r && c === goal.c);
+            const id = r * cols + c;
+            const kind = cells[id];
+            const w = weights[id];
+
+            ctx.fillStyle =
+                kind === CellKind.wall ? palette.cellWall : isEndpoint ? palette.cellEmpty : weightColor(w, palette);
             const x = c * cellSize;
             const y = r * cellSize;
 
@@ -133,6 +161,19 @@ export function drawBaseScene(
 
     // grid lines
     drawGridLines(ctx, rows, cols, cellSize, cells, palette.gridLine);
+
+    // weight level dots
+    if (cellSize >= WEIGHT_DOTS_MIN_CELL) {
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const id = r * cols + c;
+                const isEndpoint = (r === start.r && c === start.c) || (r === goal.r && c === goal.c);
+                const level = weightLevel(weights[id]);
+                if (cells[id] === CellKind.wall || isEndpoint || level < 0) continue;
+                drawWeightDots(ctx, r, c, cellSize, level + 1);
+            }
+        }
+    }
 
     // outer border
     ctx.strokeStyle = palette.gridLine;
