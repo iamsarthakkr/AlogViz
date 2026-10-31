@@ -120,10 +120,11 @@ type Scene = {
     validGoal: boolean;
 };
 
-function drawWeightDots(ctx: CanvasRenderingContext2D, r: number, c: number, cellSize: number, count: number) {
+// exported for the legend's weight swatches, so they match the grid
+export function drawWeightDots(ctx: CanvasRenderingContext2D, p: Coord, cellSize: number, count: number) {
     const radius = Math.max(1.5, cellSize * 0.07);
     const gap = radius * 3;
-    const [cx, cy] = center({ r, c }, cellSize);
+    const [cx, cy] = center(p, cellSize);
     const firstX = cx - ((count - 1) * gap) / 2;
 
     ctx.fillStyle = palette.weightMark;
@@ -170,7 +171,7 @@ export function drawBaseScene(scene: Scene) {
                 const isEndpoint = (r === start.r && c === start.c) || (r === goal.r && c === goal.c);
                 const level = weightLevel(weights[id]);
                 if (cells[id] === CellKind.wall || isEndpoint || level < 0) continue;
-                drawWeightDots(ctx, r, c, cellSize, level + 1);
+                drawWeightDots(ctx, { r, c }, cellSize, level + 1);
             }
         }
     }

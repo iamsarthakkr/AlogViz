@@ -23,6 +23,7 @@ import { Stats } from './Stats';
 import { Legend } from './Legend';
 import { InfoModal } from './InfoModal';
 import { useInfoModal } from '@/features/hooks/useInfoModal';
+import { useSettingsStore } from '@/features/store';
 
 export default function GridPage() {
     const gridRef = useRef<CanvasGridHandle>(null);
@@ -32,6 +33,7 @@ export default function GridPage() {
         animatePath: true,
     });
     const mazeGenerator = useMazeGenerator(mazes);
+    const drawTool = useSettingsStore((s) => s.tool);
 
     useResponsiveGrid(boxRef);
 
@@ -61,7 +63,11 @@ export default function GridPage() {
                 pathLen={algoController.pathLen}
                 className="[grid-area:stats] p-4"
             />
-            <Legend className="[grid-area:legend] p-4" />
+            <Legend
+                tool={drawTool}
+                onSelectTool={useSettingsStore.getState().setTool}
+                className="[grid-area:legend] p-4"
+            />
 
             <div className="[grid-area:controls] bg-primary flex items-center px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] xl:justify-end xl:py-2">
                 <PlaybackControls algo={algoController} />

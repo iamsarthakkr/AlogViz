@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { useGridStore } from '@/features/store';
 import { CellKind } from '@/types/grid';
 import {
@@ -199,6 +199,77 @@ describe('useGridStore', () => {
         });
     });
 
+    // Mutators report whether they changed anything, and skip `set` when they didn't. Callers use the
+    // result to refresh (bump gridVersion) only on real changes: a bump re-renders and makes the
+    // controller re-solve a finished run, and pointermove fires many times per cell.
+    describe('mutators report changes, and a no-op notifies nobody', () => {
+        const [LIGHT, MEDIUM] = WEIGHT_LEVELS;
+
+        // runs the mutator and records whether subscribers were notified
+        function track(mutate: () => boolean) {
+            const listener = vi.fn();
+            const unsubscribe = useGridStore.subscribe(listener);
+            const result = mutate();
+            unsubscribe();
+            return { result, notified: listener.mock.calls.length > 0 };
+        }
+        const changed = { result: true, notified: true };
+        const noop = { result: false, notified: false };
+
+        it('setWall / clearWall', () => {
+            expect(track(() => api().setWall(0, 0))).toEqual(changed);
+            expect(track(() => api().setWall(0, 0))).toEqual(noop);
+            expect(track(() => api().clearWall(0, 0))).toEqual(changed);
+            expect(track(() => api().clearWall(0, 0))).toEqual(noop);
+            expect(track(() => api().setWall(-1, 0))).toEqual(noop);
+        });
+
+        it('fillWalls / clearWalls', () => {
+            expect(track(() => api().clearWalls())).toEqual(noop); // nothing to clear yet
+            expect(track(() => api().fillWalls())).toEqual(changed);
+            expect(track(() => api().fillWalls())).toEqual(noop);
+            expect(track(() => api().clearWalls())).toEqual(changed);
+        });
+
+        it('setWeight / clearWeight / clearWeights', () => {
+            expect(track(() => api().clearWeights())).toEqual(noop); // nothing weighted yet
+            expect(track(() => api().setWeight(0, 0, LIGHT))).toEqual(changed);
+            expect(track(() => api().setWeight(0, 0, LIGHT))).toEqual(noop);
+            expect(track(() => api().setWeight(0, 0, MEDIUM))).toEqual(changed); // a different level
+            expect(track(() => api().clearWeight(0, 0))).toEqual(changed);
+            expect(track(() => api().clearWeight(0, 0))).toEqual(noop);
+            api().setWeight(1, 1, LIGHT);
+            expect(track(() => api().clearWeights())).toEqual(changed);
+        });
+
+        it('setStart / setGoal: a move changes, staying on the same cell does not', () => {
+            const { start, goal } = api();
+            expect(track(() => api().setStart(start.r, start.c))).toEqual(noop);
+            expect(track(() => api().setGoal(goal.r, goal.c))).toEqual(noop);
+            expect(track(() => api().setStart(start.r + 1, start.c))).toEqual(changed);
+            expect(track(() => api().setGoal(goal.r + 1, goal.c))).toEqual(changed);
+        });
+
+        it('setStart / setGoal refuse the other marker’s cell', () => {
+            const { start, goal } = api();
+            expect(track(() => api().setStart(goal.r, goal.c))).toEqual(noop);
+            expect(track(() => api().setGoal(start.r, start.c))).toEqual(noop);
+        });
+
+        it('hiding a marker changes once; hiding it again is a no-op', () => {
+            expect(track(() => api().setStart(-1, -1))).toEqual(changed);
+            expect(track(() => api().setStart(-1, -1))).toEqual(noop);
+            expect(track(() => api().setGoal(-1, -1))).toEqual(changed);
+            expect(track(() => api().setGoal(-1, -1))).toEqual(noop);
+        });
+    });
+
+    it('weightAt reads a cell’s weight', () => {
+        api().setWeight(3, 4, WEIGHT_LEVELS[1]);
+        expect(api().weightAt(3, 4)).toBe(WEIGHT_LEVELS[1]);
+        expect(api().weightAt(0, 0)).toBe(DEFAULT_WEIGHT);
+    });
+
     describe('setStart / setGoal', () => {
         it('moves the marker', () => {
             api().setStart(1, 1);
@@ -227,6 +298,14 @@ describe('useGridStore', () => {
             expect(api().start).toEqual(start);
             api().setGoal(start.r, start.c);
             expect(api().goal).toEqual(goal);
+        });
+
+        // regression: the hide check used to be `r < 0 && c <= 0`, so dragging a marker above the top edge
+        // in the first column (pointer capture keeps sending moves, hitCell gives r = -1) made it vanish
+        it('clamps a drag above the top edge in the first column instead of hiding the marker', () => {
+            api().setStart(-1, 0);
+            expect(api().validStart()).toBe(true);
+            expect(api().start).toEqual({ r: 0, c: 0 });
         });
 
         it('(-1, -1) hides the marker, which makes it invalid', () => {

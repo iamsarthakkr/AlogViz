@@ -5,7 +5,8 @@
 // - weights: parallel flat array, the cost to enter each cell. Only plain cells carry weight: walls
 //   reset it and setWeight refuses walls and markers. A marker dropped on terrain keeps the stored
 //   weight so the terrain is back when it moves on (getGridSnapshot makes it not count)
-// - Mutators no-op (return {}) when nothing would change, so subscribers don't re-render
+// - Mutators return whether they changed anything, and skip `set` when they didn't (no re-render).
+//   Callers refresh() only on true: every gridVersion bump makes the controller re-solve a finished run
 // - gridVersion is the manual dirty flag other hooks watch to invalidate cached runs
 // - gridLock disables pointer edits while an algorithm/maze is running
 // - setStart/setGoal snap to the nearest non-wall cell instead of landing on a wall
@@ -30,119 +31,132 @@ export const useGridStore = create<GridState>((set, get) => {
             return s.cells[s.idx(r, c)];
         },
 
+        weightAt: (r, c) => {
+            const s = get();
+            return s.weights[s.idx(r, c)];
+        },
+
         setGridLock: (flag) => {
             set(() => ({ gridLock: flag }));
         },
 
         setWall: (r, c) => {
-            set((s) => {
-                if (!s.inBounds(r, c)) return {};
-                // don’t overwrite markers
-                if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) return {};
-                const id = s.idx(r, c);
-                if (s.cells[id] === CellKind.wall) return {};
+            const s = get();
+            if (!s.inBounds(r, c)) return false;
+            if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) return false;
+            const id = s.idx(r, c);
+            if (s.cells[id] === CellKind.wall) return false;
 
-                const newCells = s.cells.slice();
-                const newWeights = s.weights.slice();
-                newCells[id] = CellKind.wall;
-                newWeights[id] = DEFAULT_WEIGHT;
+            const newCells = s.cells.slice();
+            const newWeights = s.weights.slice();
+            newCells[id] = CellKind.wall;
+            newWeights[id] = DEFAULT_WEIGHT;
 
-                return { cells: newCells, weights: newWeights };
-            });
+            set({ cells: newCells, weights: newWeights });
+            return true;
         },
 
         clearWall: (r, c) => {
-            set((s) => {
-                if (!s.inBounds(r, c)) return {};
-                const id = s.idx(r, c);
-                if (s.cells[id] !== CellKind.wall) return {};
+            const s = get();
+            const id = s.idx(r, c);
+            if (!s.inBounds(r, c) || s.cells[id] !== CellKind.wall) return false;
 
-                const newCells = s.cells.slice();
-                newCells[id] = CellKind.empty;
+            const newCells = s.cells.slice();
+            newCells[id] = CellKind.empty;
 
-                return { cells: newCells };
-            });
+            set({ cells: newCells });
+            return true;
         },
 
         fillWalls: () => {
-            set((s) => ({
-                cells: s.cells.slice().fill(CellKind.wall),
-                weights: s.weights.slice().fill(DEFAULT_WEIGHT),
-            }));
+            const { cells, weights } = get();
+            if (!cells.includes(CellKind.empty)) return false;
+            set({
+                cells: cells.slice().fill(CellKind.wall),
+                weights: weights.slice().fill(DEFAULT_WEIGHT),
+            });
+            return true;
         },
 
         clearWalls: () => {
-            set((s) => ({
-                cells: s.cells.slice().fill(CellKind.empty),
-            }));
+            const { cells } = get();
+            if (!cells.includes(CellKind.wall)) return false;
+
+            set({ cells: cells.slice().fill(CellKind.empty) });
+            return true;
         },
 
         setWeight: (r, c, w) => {
-            set((s) => {
-                if (!s.inBounds(r, c) || w < DEFAULT_WEIGHT) return {};
-                // don’t overwrite markers
-                if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) return {};
+            const s = get();
+            if (!s.inBounds(r, c) || w < DEFAULT_WEIGHT) return false;
+            // don’t overwrite markers
+            if ((s.start.r === r && s.start.c === c) || (s.goal.r === r && s.goal.c === c)) return false;
 
-                const id = s.idx(r, c);
-                if (s.cells[id] === CellKind.wall || s.weights[id] === w) return {};
+            const id = s.idx(r, c);
+            if (s.cells[id] === CellKind.wall || s.weights[id] === w) return false;
 
-                const newWeights = s.weights.slice();
-                newWeights[id] = w;
+            const newWeights = s.weights.slice();
+            newWeights[id] = w;
 
-                return { weights: newWeights };
-            });
+            set({ weights: newWeights });
+            return true;
         },
 
         clearWeight: (r, c) => {
-            set((s) => {
-                if (!s.inBounds(r, c)) return {};
-                const id = s.idx(r, c);
-                if (s.cells[id] === CellKind.wall || s.weights[id] === DEFAULT_WEIGHT) return {};
+            const s = get();
+            if (!s.inBounds(r, c)) return false;
+            const id = s.idx(r, c);
+            if (s.cells[id] === CellKind.wall || s.weights[id] === DEFAULT_WEIGHT) return false;
 
-                const newWeights = s.weights.slice();
-                newWeights[id] = DEFAULT_WEIGHT;
+            const newWeights = s.weights.slice();
+            newWeights[id] = DEFAULT_WEIGHT;
 
-                return { weights: newWeights };
-            });
+            set({ weights: newWeights });
+            return true;
         },
 
         clearWeights: () => {
-            set((s) => {
-                let hadWeights = false;
-                const newWeights = s.weights.slice();
-                for (let i = 0; i < newWeights.length; i++) {
-                    if (newWeights[i] !== DEFAULT_WEIGHT) {
-                        newWeights[i] = DEFAULT_WEIGHT;
-                        hadWeights = true;
-                    }
-                }
-                return hadWeights ? { weights: newWeights } : {};
-            });
+            const s = get();
+            if (s.weights.findIndex((w) => w > DEFAULT_WEIGHT) < 0) return false;
+
+            set({ weights: s.weights.slice().fill(DEFAULT_WEIGHT) });
+            return true;
         },
 
-        setStart: (r, c) =>
-            set((s: GridState) => {
-                if (r < 0 && c <= 0) {
-                    return { start: { r: -1, c: -1 } };
-                }
-                r = clamp(r, 0, s.rows - 1);
-                c = clamp(c, 0, s.cols - 1);
-                const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
-                if (snapped.r === s.goal.r && snapped.c === s.goal.c) return {};
-                return { start: snapped };
-            }),
+        setStart: (r, c) => {
+            const s = get();
+            if (r < 0 && c < 0) {
+                if (!s.validStart()) return false;
+                set({ start: { r: -1, c: -1 } });
+                return true;
+            }
+            r = clamp(r, 0, s.rows - 1);
+            c = clamp(c, 0, s.cols - 1);
+            const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
+            if (snapped.r === s.start.r && snapped.c === s.start.c) return false;
+            if (snapped.r === s.goal.r && snapped.c === s.goal.c) return false;
 
-        setGoal: (r, c) =>
-            set((s: GridState) => {
-                if (r < 0 && c <= 0) {
-                    return { goal: { r: -1, c: -1 } };
-                }
-                r = clamp(r, 0, s.rows - 1);
-                c = clamp(c, 0, s.cols - 1);
-                const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
-                if (snapped.r === s.start.r && snapped.c === s.start.c) return {};
-                return { goal: snapped };
-            }),
+            set({ start: snapped });
+            return true;
+        },
+
+        setGoal: (r, c) => {
+            const s = get();
+            if (r < 0 && c < 0) {
+                if (!s.validGoal()) return false;
+                set({ goal: { r: -1, c: -1 } });
+                return true;
+            }
+
+            r = clamp(r, 0, s.rows - 1);
+            c = clamp(c, 0, s.cols - 1);
+            const snapped = nearestEmptyCell(r, c, s.rows, s.cols, s.cells);
+            if (snapped.r === s.start.r && snapped.c === s.start.c) return false;
+            if (snapped.r === s.goal.r && snapped.c === s.goal.c) return false;
+
+            set({ goal: snapped });
+            return true;
+        },
 
         validStart: () => {
             const s = get();

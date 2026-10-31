@@ -21,3 +21,4 @@ export const TARGET_CELL = 24; // "comfortable" cell size in px
 // Nothing may cost less than DEFAULT_WEIGHT: A* assumes every step costs at least that
 export const DEFAULT_WEIGHT = 1;
 export const WEIGHT_LEVELS: readonly number[] = [2, 5, 10];
+export const WEIGHT_LEVEL_NAMES: readonly string[] = ['Light', 'Medium', 'Heavy'];

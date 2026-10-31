@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Grid from '@/ui/Grid';
-import { useGridStore } from '@/features/store';
+import { useGridStore, useSettingsStore } from '@/features/store';
 import { lightPalette } from '@/features/painters';
 import { mazesLabels } from '@/features/mazes';
 import { algoLabels } from '@/features/algo';
 import { CellKind } from '@/types/grid';
+import { WEIGHT_LEVELS } from '@/utils/constants';
 import { MockCtx } from '../helpers/canvas';
 import { installFakeRaf } from '../helpers/raf';
 import { seedRandom } from '../helpers/random';
@@ -56,6 +57,24 @@ describe('Grid page', () => {
             render(<Grid />);
             expect(screen.getByRole('main').querySelectorAll('canvas')).toHaveLength(2);
         });
+    });
+
+    // the legend's palette and the grid share the settings store's tool
+    it('picking a weight in the legend makes the grid paint that weight', async () => {
+        render(<Grid />);
+        const medium = WEIGHT_LEVELS[1];
+        await userEvent.click(screen.getByRole('button', { name: new RegExp(`cost ${medium}$`) }));
+        expect(useSettingsStore.getState().tool).toEqual({ type: 'weight', weight: medium });
+        expect(screen.getByRole('button', { name: new RegExp(`cost ${medium}$`) })).toHaveAttribute(
+            'aria-pressed',
+            'true',
+        );
+
+        // CanvasGrid's wrapper (the element with the pointer handlers) wraps the canvas stage
+        const surface = screen.getByRole('main').querySelector('canvas')!.parentElement!.parentElement!;
+        const { cellSize } = useGridStore.getState();
+        fireEvent.pointerDown(surface, { clientX: cellSize / 2, clientY: cellSize / 2, pointerId: 1 });
+        expect(useGridStore.getState().weights[0]).toBe(medium);
     });
 
     // the toolbar's info button and the InfoModal share the page's open state (useInfoModal)
